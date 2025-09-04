@@ -8,7 +8,8 @@ const User = require('../models/User');
 
 // User Registration
 router.post('/register', [
-  body('name').notEmpty().withMessage('Name is required'),
+  body('firstName').notEmpty().withMessage('First name is required'),
+  body('lastName').notEmpty().withMessage('Last name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('confirmPassword').custom((value, { req }) => {
@@ -28,7 +29,7 @@ router.post('/register', [
       });
     }
 
-    const { name, email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -41,7 +42,8 @@ router.post('/register', [
 
     // Create new user
     const newUser = new User({
-      name,
+      firstName,
+      lastName,
       email,
       password,
       role: 'user'
@@ -171,7 +173,8 @@ router.get('/me', auth, async (req, res) => {
 
 // Update user profile
 router.put('/profile', [
-  body('name').optional().notEmpty().withMessage('Name cannot be empty'),
+  body('firstName').optional().notEmpty().withMessage('First name cannot be empty'),
+  body('lastName').optional().notEmpty().withMessage('Last name cannot be empty'),
   body('email').optional().isEmail().withMessage('Valid email is required')
 ], async (req, res) => {
   try {
@@ -204,7 +207,8 @@ router.put('/profile', [
     }
 
     // Update user
-    user.name = req.body.name || user.name;
+    user.firstName = req.body.firstName || user.firstName;
+    user.lastName = req.body.lastName || user.lastName;
     user.email = req.body.email || user.email;
     user.updatedAt = new Date();
 

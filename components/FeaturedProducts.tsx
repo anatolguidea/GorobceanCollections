@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { getImageUrl } from '../utils/imageUtils'
+import { api } from '../utils/api'
 
 interface Product {
   _id: string
@@ -28,22 +29,27 @@ const FeaturedProducts = () => {
       try {
         setLoading(true)
         console.log('Fetching random products...')
-        // Fetch random products using the new endpoint
-        const response = await fetch('http://localhost:5001/api/products/random/random?limit=4')
-        console.log('Random products response status:', response.status)
+        // Fetch random products using the API client
+        const response = await api.products.getRandom(4)
+        console.log('Random products response:', response)
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch random products')
-        }
+        // Debug the response structure
+        console.log('Response structure:', {
+          success: response.success,
+          hasData: !!response.data,
+          dataSuccess: response.data?.success,
+          hasDataData: !!response.data?.data,
+          hasProducts: !!response.data?.data?.products,
+          productsIsArray: Array.isArray(response.data?.data?.products),
+          productsLength: response.data?.data?.products?.length
+        })
         
-        const data = await response.json()
-        console.log('Random products data:', data)
-        
-        if (data.success) {
-          setProducts(data.data.products)
-          console.log('Random products set:', data.data.products.length)
+        if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data.products)) {
+          setProducts(response.data.data.products)
+          console.log('Random products set:', response.data.data.products.length)
         } else {
-          throw new Error(data.message || 'Failed to fetch random products')
+          console.error('Invalid response structure:', response)
+          throw new Error('Failed to fetch random products')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -113,7 +119,7 @@ const FeaturedProducts = () => {
 
         {/* Products Horizontal Gallery */}
         <div className="flex gap-6 overflow-x-auto pb-4 justify-center">
-          {products.length === 0 ? (
+          {!Array.isArray(products) || products.length === 0 ? (
             <div className="w-full text-center py-12">
               <p className="text-lg text-gray-600">No featured products available at the moment.</p>
             </div>
@@ -133,7 +139,7 @@ const FeaturedProducts = () => {
               >
                 <div className="relative bg-white overflow-hidden">
                   {/* Product Image - Model wearing the clothing */}
-                  <div className="relative h-[300px] overflow-hidden bg-gray-100">
+                  <div className="relative h-[400px] overflow-hidden bg-gray-100">
                     <img
                       src={getImageUrl(product.images[0]?.url)}
                       alt={product.images[0]?.alt || product.name}

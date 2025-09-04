@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { api } from '../utils/api'
 
 interface Category {
   _id: string
@@ -26,19 +27,16 @@ const Categories = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true)
-        const response = await fetch('http://localhost:5001/api/categories')
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories')
-        }
-        const data = await response.json()
-        if (data.success) {
-          setCategories(data.data)
+        const response = await api.categories.getAll()
+        if (response.success && response.data && response.data.success && Array.isArray(response.data.data)) {
+          setCategories(response.data.data)
         } else {
-          throw new Error(data.message || 'Failed to fetch categories')
+          throw new Error('Invalid categories response')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
         console.error('Error fetching categories:', err)
+        setCategories([])
       } finally {
         setLoading(false)
       }
@@ -48,12 +46,14 @@ const Categories = () => {
   }, [])
 
   const nextSlide = () => {
+    if (!Array.isArray(categories) || categories.length === 0) return
     setCurrentIndex((prevIndex) => 
       prevIndex === categories.length - 4 ? 0 : prevIndex + 1
     )
   }
 
   const prevSlide = () => {
+    if (!Array.isArray(categories) || categories.length === 0) return
     setCurrentIndex((prevIndex) => 
       prevIndex === 0 ? categories.length - 4 : prevIndex - 1
     )
@@ -115,27 +115,31 @@ const Categories = () => {
 
         {/* Categories Navigation Container */}
         <div className="relative">
-          {/* Left Arrow */}
-          <button
-            onClick={prevSlide}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors duration-200"
-            aria-label="Previous categories"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-700" />
-          </button>
+          {/* Left Arrow - only show if we have categories */}
+          {Array.isArray(categories) && categories.length > 4 && (
+            <button
+              onClick={prevSlide}
+              className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors duration-200"
+              aria-label="Previous categories"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-700" />
+            </button>
+          )}
 
-          {/* Right Arrow */}
-          <button
-            onClick={nextSlide}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors duration-200"
-            aria-label="Next categories"
-          >
-            <ChevronRight className="w-6 h-6 text-gray-700" />
-          </button>
+          {/* Right Arrow - only show if we have categories */}
+          {Array.isArray(categories) && categories.length > 4 && (
+            <button
+              onClick={nextSlide}
+              className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors duration-200"
+              aria-label="Next categories"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-700" />
+            </button>
+          )}
 
           {/* Categories Horizontal Gallery */}
           <div className="flex gap-6 overflow-hidden justify-center px-12">
-            {categories.length === 0 ? (
+            {!Array.isArray(categories) || categories.length === 0 ? (
               <div className="w-full text-center py-12">
                 <p className="text-lg text-gray-600">No categories available at the moment.</p>
               </div>

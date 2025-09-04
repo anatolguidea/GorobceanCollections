@@ -18,6 +18,7 @@ import {
   Clock
 } from 'lucide-react'
 import { getImageUrl } from '../utils/imageUtils'
+import { api } from '../utils/api'
 
 interface Order {
   _id: string
@@ -70,17 +71,20 @@ const AdminOrdersClient = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('token')
-      if (!token) return
+      if (!token) {
+        console.log('No token found')
+        return
+      }
 
-      const response = await fetch('http://localhost:5001/api/orders/admin/all', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setOrders(data.data?.orders || [])
+      console.log('Fetching orders with token:', token.substring(0, 20) + '...')
+      const response = await api.orders.getAllAdmin()
+      console.log('Orders API response:', response)
+      
+      if (response.success && response.data && response.data.data) {
+        setOrders(response.data.data.orders || [])
+        console.log('Orders loaded:', response.data.data.orders?.length || 0)
+      } else {
+        console.error('Failed to fetch orders:', response)
       }
     } catch (error) {
       console.error('Error fetching orders:', error)
@@ -113,22 +117,23 @@ const AdminOrdersClient = () => {
 
     try {
       const token = localStorage.getItem('token')
-      if (!token) return
+      if (!token) {
+        console.log('No token found')
+        return
+      }
 
-      const response = await fetch(`http://localhost:5001/api/orders/${selectedOrder._id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      })
+      console.log('Updating order status:', selectedOrder._id, 'to', newStatus)
+      const response = await api.orders.updateStatusAdmin(selectedOrder._id, { status: newStatus })
+      console.log('Status update response:', response)
 
-      if (response.ok) {
+      if (response.success) {
         await fetchOrders()
         setShowStatusModal(false)
         setSelectedOrder(null)
         setNewStatus('')
+        console.log('Order status updated successfully')
+      } else {
+        console.error('Failed to update order status:', response)
       }
     } catch (error) {
       console.error('Error updating order status:', error)

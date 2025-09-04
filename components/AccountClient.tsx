@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { api } from '../utils/api'
 import { motion } from 'framer-motion'
 import { User, Lock, Mail, Eye, EyeOff, LogIn, UserPlus, Settings, Heart, Package, MapPin } from 'lucide-react'
 
@@ -37,7 +38,7 @@ const AccountClient = () => {
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'addresses'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses'>('profile')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,24 +64,21 @@ const AccountClient = () => {
 
   const checkAuthStatus = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5001/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      console.log('AccountClient: Checking auth status with token:', token)
+      const response = await api.auth.getProfile()
+      console.log('AccountClient: Profile response:', response)
       
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setUser(data.data)
-          setIsLoggedIn(true)
-        }
+      if (response.success && response.data && response.data.success && response.data.data) {
+        setUser(response.data.data)
+        setIsLoggedIn(true)
+        console.log('AccountClient: User authenticated successfully:', response.data.data)
       } else {
+        console.log('AccountClient: Invalid response, removing token')
         // Token is invalid, remove it
         localStorage.removeItem('token')
       }
     } catch (error) {
-      console.error('Error checking auth status:', error)
+      console.error('AccountClient: Error checking auth status:', error)
       localStorage.removeItem('token')
     }
   }
@@ -94,22 +92,15 @@ const AccountClient = () => {
     try {
       if (isLogin) {
         // Handle login
-        const response = await fetch('http://localhost:5001/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password
-          }),
+        const response = await api.auth.login({
+          email: formData.email,
+          password: formData.password
         })
 
-        const data = await response.json()
-
-        if (data.success) {
-          localStorage.setItem('token', data.data.token)
-          localStorage.setItem('user', JSON.stringify(data.data.user))
+        if (response.success && response.data && response.data.success && response.data.data) {
+          const { token, user } = response.data.data
+          localStorage.setItem('token', token)
+          localStorage.setItem('user', JSON.stringify(user))
           
           // Dispatch custom events to update header
           window.dispatchEvent(new Event('storage'))
@@ -120,7 +111,7 @@ const AccountClient = () => {
             router.push(returnTo)
           }, 1000)
         } else {
-          setError(data.message || 'Login failed')
+          setError(response.message || 'Login failed')
         }
       } else {
         // Handle registration
@@ -130,22 +121,15 @@ const AccountClient = () => {
           return
         }
 
-        const response = await fetch('http://localhost:5001/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            password: formData.password
-          }),
+        const response = await api.auth.register({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.password
         })
 
-        const data = await response.json()
-
-        if (data.success) {
+        if (response.success) {
           setSuccess('Registration successful! Please log in.')
           setIsLogin(true)
           setFormData({
@@ -156,7 +140,7 @@ const AccountClient = () => {
             confirmPassword: ''
           })
         } else {
-          setError(data.message || 'Registration failed')
+          setError(response.message || 'Registration failed')
         }
       }
     } catch (err) {
@@ -221,7 +205,6 @@ const AccountClient = () => {
                   {[
                     { id: 'profile', label: 'Profile', icon: User },
                     { id: 'orders', label: 'Orders', icon: Package },
-                    { id: 'wishlist', label: 'Wishlist', icon: Heart },
                     { id: 'addresses', label: 'Addresses', icon: MapPin }
                   ].map((tab) => (
                     <button
@@ -307,21 +290,6 @@ const AccountClient = () => {
                   </motion.div>
                 )}
 
-                {/* Wishlist Tab */}
-                {activeTab === 'wishlist' && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <h2 className="text-2xl font-medium text-black mb-6 tracking-wide">My Wishlist</h2>
-                    <div className="text-center py-12">
-                      <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 font-light">Your wishlist is empty</p>
-                      <p className="text-sm text-gray-400 mt-2">Start adding items to your wishlist</p>
-                    </div>
-                  </motion.div>
-                )}
 
                 {/* Addresses Tab */}
                 {activeTab === 'addresses' && (

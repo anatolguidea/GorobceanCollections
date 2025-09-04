@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { api } from '../utils/api'
 import { 
   Package, 
   Users, 
@@ -38,31 +39,35 @@ const AdminDashboardClient = () => {
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('token')
-      if (!token) return
+      if (!token) {
+        console.log('No token found')
+        return
+      }
+
+      console.log('Fetching dashboard stats...')
 
       // Fetch products count
-      const productsResponse = await fetch('http://localhost:5001/api/products?limit=100')
-      const productsData = await productsResponse.json()
+      const productsResponse = await api.products.getAll({ limit: 100 })
+      console.log('Products response:', productsResponse)
       
       // Fetch users count
-      const usersResponse = await fetch('http://localhost:5001/api/users/count', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const usersData = await usersResponse.json()
+      const usersResponse = await api.users.getCount()
+      console.log('Users count response:', usersResponse)
       
       // Fetch orders count and revenue
-      const ordersResponse = await fetch('http://localhost:5001/api/orders/count', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const ordersData = await ordersResponse.json()
+      const ordersResponse = await api.orders.getCount()
+      console.log('Orders count response:', ordersResponse)
 
-      setStats({
-        totalProducts: productsData.data?.pagination?.totalProducts || productsData.data?.products?.length || 0,
-        totalUsers: usersData.data?.count || 0,
-        totalOrders: ordersData.data?.count || 0,
-        totalRevenue: ordersData.data?.totalRevenue || 0,
-        recentProducts: productsData.data?.products?.slice(0, 5) || []
-      })
+      const newStats = {
+        totalProducts: productsResponse.data?.data?.pagination?.totalProducts || productsResponse.data?.data?.products?.length || 0,
+        totalUsers: usersResponse.data?.data?.count || 0,
+        totalOrders: ordersResponse.data?.data?.count || 0,
+        totalRevenue: ordersResponse.data?.data?.totalRevenue || 0,
+        recentProducts: productsResponse.data?.data?.products?.slice(0, 5) || []
+      }
+
+      console.log('Dashboard stats:', newStats)
+      setStats(newStats)
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
     } finally {

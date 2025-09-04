@@ -369,7 +369,6 @@ STRIPE_SECRET_KEY=your-stripe-secret-key
 - **Real-time Chat**: Socket.io integration
 - **Analytics**: Google Analytics integration
 - **PWA**: Progressive Web App features
-- **Multi-language**: Internationalization (i18n)
 - **Dark Mode**: Theme switching capability
 
 ## 🤝 Contributing

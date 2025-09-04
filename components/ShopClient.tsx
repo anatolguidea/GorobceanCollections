@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getImageUrl } from '@/utils/imageUtils'
 import { Package, Filter, X, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { api } from '../utils/api'
 
 interface Product {
   _id: string
@@ -45,37 +46,56 @@ export default function ShopClient() {
   const [filterLoading, setFilterLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalProducts, setTotalProducts] = useState(0)
+  const productsPerPage = 16
   
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
-  const [selectedColors, setSelectedColors] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState('desc')
+  
+  // Available sizes (standard clothing sizes + number sizes)
+  const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38', '40', '42', '44', '46']
 
   // Debounced price range for smooth filtering
   const [debouncedPriceRange, setDebouncedPriceRange] = useState({ min: '', max: '' })
 
-  // Fetch products whenever filters change
+  // Initial fetch on component mount
   useEffect(() => {
     fetchProducts()
-  }, [selectedCategory, selectedSizes, selectedColors, debouncedPriceRange.min, debouncedPriceRange.max, sortBy, sortOrder])
+  }, [])
 
-  // Debounce price range changes
+  // Fetch products when filters change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedPriceRange(priceRange)
-    }, 500) // 500ms delay
+    setCurrentPage(1) // Reset to first page when filters change
+    fetchProducts()
+  }, [selectedCategory, selectedSizes, debouncedPriceRange.min, debouncedPriceRange.max, sortBy, sortOrder, searchParams])
 
-    return () => clearTimeout(timer)
-  }, [priceRange])
+  // Fetch products when page changes
+  useEffect(() => {
+    fetchProducts()
+  }, [currentPage])
 
-  // Handle URL parameters for category filtering
+  // Debounce price range changes - removed automatic reloading
+  // Price range will only be applied when user clicks "Apply Price Filter"
+
+  // Handle URL parameters for category filtering and search
   useEffect(() => {
     const categoryParam = searchParams.get('category')
+    const searchParam = searchParams.get('search')
+    
     if (categoryParam) {
       setSelectedCategory(categoryParam)
+    }
+    
+    if (searchParam) {
+      // You could add a search input state here if needed
+      console.log('Search query from URL:', searchParam)
     }
   }, [searchParams])
 
@@ -88,51 +108,44 @@ export default function ShopClient() {
     try {
       setFilterLoading(true)
       setError(null)
-      
-      // Build query parameters
-      const params = new URLSearchParams()
-      
-      // Add filters
-      if (selectedCategory) params.append('category', selectedCategory)
-      if (selectedSizes.length > 0) params.append('sizes', selectedSizes.join(','))
-      if (selectedColors.length > 0) params.append('colors', selectedColors.join(','))
-      if (debouncedPriceRange.min) params.append('minPrice', debouncedPriceRange.min)
-      if (debouncedPriceRange.max) params.append('maxPrice', debouncedPriceRange.max)
-      if (sortBy) params.append('sortBy', sortBy)
-      if (sortOrder) params.append('sortOrder', sortOrder)
-      
-      // Set limit to show more products
-      params.append('limit', '50')
-      
-      const url = `http://localhost:5001/api/products?${params.toString()}`
-      console.log('🔍 Fetching products with filters:', {
-        selectedCategory,
-        selectedSizes,
-        selectedColors,
-        priceRange: debouncedPriceRange,
-        sortBy,
-        sortOrder
-      })
-      console.log('🔍 API URL:', url)
-      
-      const response = await fetch(url)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      // Only set main loading on initial load, not on filter changes
+      if (products.length === 0) {
+        setLoading(true)
       }
       
-      const data = await response.json()
-      console.log('🔍 API response:', data)
+      const searchQuery = searchParams.get('search')
       
-      if (data.success) {
-        setProducts(data.data.products || [])
-        console.log('✅ Products loaded:', data.data.products?.length || 0)
+      // Only include parameters that have values
+      const apiParams: Record<string, any> = {
+        sortBy,
+        sortOrder,
+        limit: productsPerPage,
+        page: currentPage
+      }
+      
+      if (selectedCategory) apiParams.category = selectedCategory
+      if (selectedSizes.length > 0) {
+        apiParams.sizes = selectedSizes.join(',')
+      }
+      if (debouncedPriceRange.min) apiParams.minPrice = debouncedPriceRange.min
+      if (debouncedPriceRange.max) apiParams.maxPrice = debouncedPriceRange.max
+      if (searchQuery) apiParams.search = searchQuery
+      
+      const response = await api.products.getAll(apiParams)
+      
+      if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data.products)) {
+        setProducts(response.data.data.products)
+        
+        // Update pagination info if available
+        if (response.data.data.pagination) {
+          setTotalPages(response.data.data.pagination.totalPages || 1)
+          setTotalProducts(response.data.data.pagination.totalProducts || 0)
+        }
       } else {
-        setError(data.message || 'Failed to fetch products')
-        console.error('❌ API error:', data.message)
+        setProducts([])
+        setError('Failed to fetch products')
       }
     } catch (err) {
-      console.error('❌ Error fetching products:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch products')
     } finally {
       setFilterLoading(false)
@@ -142,43 +155,43 @@ export default function ShopClient() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/categories')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setCategories(data.data)
-        }
+      const response = await api.categories.getAll()
+      if (response.success && response.data && response.data.success && Array.isArray(response.data.data)) {
+        setCategories(response.data.data)
+      } else {
+        console.error('Invalid categories response:', response)
+        setCategories([])
       }
     } catch (error) {
       console.error('Error fetching categories:', error)
+      setCategories([])
     }
   }
 
-  const handleCategoryChange = useCallback((categoryName: string) => {
-    setSelectedCategory(categoryName)
-  }, [])
 
-  const handleSizeChange = useCallback((size: string) => {
-    setSelectedSizes(prev => 
-      prev.includes(size) 
+  const handleCategoryChange = (categoryName: string) => {
+    setSelectedCategory(categoryName)
+  }
+
+  const handleSizeChange = (size: string) => {
+    setSelectedSizes(prev => {
+      const newSizes = prev.includes(size) 
         ? prev.filter(s => s !== size)
         : [...prev, size]
-    )
-  }, [])
+      return newSizes
+    })
+  }
 
-  const handleColorChange = useCallback((color: string) => {
-    setSelectedColors(prev => 
-      prev.includes(color) 
-        ? prev.filter(c => c !== color)
-        : [...prev, color]
-    )
-  }, [])
 
-  const handlePriceRangeChange = useCallback((field: 'min' | 'max', value: string) => {
+  const handlePriceRangeChange = (field: 'min' | 'max', value: string) => {
     setPriceRange(prev => ({ ...prev, [field]: value }))
-  }, [])
+  }
 
-  const handleSortChange = useCallback((newSortBy: string) => {
+  const applyPriceFilter = () => {
+    setDebouncedPriceRange(priceRange)
+  }
+
+  const handleSortChange = (newSortBy: string) => {
     // Map frontend sort values to backend values
     let backendSortBy = 'createdAt'
     let backendSortOrder = 'desc'
@@ -215,19 +228,24 @@ export default function ShopClient() {
     
     setSortBy(backendSortBy)
     setSortOrder(backendSortOrder)
-  }, [])
+  }
 
-  const clearFilters = useCallback(() => {
+  const clearFilters = () => {
     setSelectedCategory('')
     setSelectedSizes([])
-    setSelectedColors([])
     setPriceRange({ min: '', max: '' })
+    setDebouncedPriceRange({ min: '', max: '' })
     setSortBy('createdAt')
     setSortOrder('desc')
-  }, [])
+    setCurrentPage(1)
+  }
 
-  const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38', '40', '42', '44', '46']
-  const availableColors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple', 'Brown', 'Gray']
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
 
   if (loading) {
     return (
@@ -238,8 +256,8 @@ export default function ShopClient() {
               <div className="bg-gray-200 h-10 rounded w-1/4 mx-auto mb-4"></div>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, index) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(16)].map((_, index) => (
               <div key={index} className="animate-pulse px-3">
                 <div className="bg-gray-200 h-64 mb-4"></div>
                 <div className="bg-gray-200 h-5 rounded mb-2"></div>
@@ -292,6 +310,11 @@ export default function ShopClient() {
               {selectedCategory && (
                 <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                   Category: {selectedCategory}
+                </span>
+              )}
+              {searchParams.get('search') && (
+                <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                  Search: "{searchParams.get('search')}"
                 </span>
               )}
             </div>
@@ -360,7 +383,7 @@ export default function ShopClient() {
                   >
                     All Categories
                   </button>
-                  {categories.map((category) => (
+                  {Array.isArray(categories) && categories.map((category) => (
                     <button
                       key={category._id}
                       onClick={() => handleCategoryChange(category.name)}
@@ -387,7 +410,7 @@ export default function ShopClient() {
                       className={`px-3 py-2 text-xs rounded border transition-all duration-200 ${
                         selectedSizes.includes(size) 
                           ? 'border-black bg-black text-white' 
-                          : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                          : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
                       } ${filterLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {size}
@@ -396,26 +419,6 @@ export default function ShopClient() {
                 </div>
               </div>
 
-              {/* Colors */}
-              <div className="mb-6">
-                <h3 className="text-sm font-light text-black tracking-[0.1em] mb-3 uppercase">Colors</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {availableColors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => handleColorChange(color)}
-                      disabled={filterLoading}
-                      className={`px-3 py-2 text-xs rounded border transition-all duration-200 ${
-                        selectedColors.includes(color) 
-                          ? 'border-black bg-black text-white' 
-                          : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                      } ${filterLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {color}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {/* Price Range */}
               <div className="mb-6">
@@ -428,13 +431,10 @@ export default function ShopClient() {
                       value={priceRange.min}
                       onChange={(e) => handlePriceRangeChange('min', e.target.value)}
                       disabled={filterLoading}
+                      min="0"
+                      step="0.01"
                       className="w-full px-3 py-2 border border-gray-300 rounded text-sm transition-all duration-200 focus:border-black focus:ring-1 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
                     />
-                    {filterLoading && priceRange.min && (
-                      <div className="absolute right-2 top-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                      </div>
-                    )}
                   </div>
                   <div className="relative">
                     <input
@@ -443,14 +443,19 @@ export default function ShopClient() {
                       value={priceRange.max}
                       onChange={(e) => handlePriceRangeChange('max', e.target.value)}
                       disabled={filterLoading}
+                      min="0"
+                      step="0.01"
                       className="w-full px-3 py-2 border border-gray-300 rounded text-sm transition-all duration-200 focus:border-black focus:ring-1 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
                     />
-                    {filterLoading && priceRange.max && (
-                      <div className="absolute right-2 top-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                      </div>
-                    )}
                   </div>
+                  {/* Apply Price Filter Button */}
+                  <button
+                    onClick={applyPriceFilter}
+                    disabled={filterLoading || (!priceRange.min && !priceRange.max)}
+                    className="w-full px-4 py-2 bg-black text-white text-sm rounded transition-all duration-200 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400"
+                  >
+                    Apply Price Filter
+                  </button>
                 </div>
               </div>
 
@@ -466,16 +471,26 @@ export default function ShopClient() {
           </div>
 
           {/* Products Grid */}
-          <div className="flex-1">
-            {filterLoading ? (
+          <div className="flex-1 relative">
+            {/* Filter Loading Overlay */}
+            {filterLoading && products.length > 0 && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">Updating results...</p>
+                </div>
+              </div>
+            )}
+            
+            {filterLoading && products.length === 0 ? (
               /* Loading State for Products */
               <div className="text-center py-16">
                 <Loader2 className="mx-auto h-12 w-12 text-gray-400 animate-spin mb-4" />
-                <h2 className="text-xl font-light text-gray-600 mb-2">Updating results...</h2>
-                <p className="text-sm text-gray-500">Please wait while we fetch your filtered products</p>
+                <h2 className="text-xl font-light text-gray-600 mb-2">Loading products...</h2>
+                <p className="text-sm text-gray-500">Please wait while we fetch your products</p>
               </div>
-            ) : products.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            ) : Array.isArray(products) && products.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {products.map((product) => {
                   const primaryImage = product.images.find(img => img.isPrimary) || product.images[0]
                   
@@ -484,7 +499,7 @@ export default function ShopClient() {
                       <Link href={`/products/${product._id}`} className="block">
                         <div className="relative bg-white overflow-hidden">
                           {/* Product Image */}
-                          <div className="relative h-64 overflow-hidden bg-gray-100">
+                          <div className="relative h-80 overflow-hidden bg-gray-100">
                             {primaryImage ? (
                               <img
                                 src={getImageUrl(primaryImage.url)}
@@ -530,12 +545,12 @@ export default function ShopClient() {
                   No Products Found
                 </h2>
                 <p className="text-lg text-gray-600 mb-6">
-                  {selectedCategory || selectedSizes.length > 0 || selectedColors.length > 0 || priceRange.min || priceRange.max
+                  {selectedCategory || selectedSizes.length > 0 || priceRange.min || priceRange.max
                     ? 'Try adjusting your filters to see more products.'
                     : 'We\'re currently setting up our product catalog. Check back soon!'
                   }
                 </p>
-                {(selectedCategory || selectedSizes.length > 0 || selectedColors.length > 0 || priceRange.min || priceRange.max) && (
+                {(selectedCategory || selectedSizes.length > 0 || priceRange.min || priceRange.max) && (
                   <button 
                     onClick={clearFilters}
                     className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
@@ -543,6 +558,51 @@ export default function ShopClient() {
                     Clear All Filters
                   </button>
                 )}
+              </div>
+            )}
+            
+            {/* Pagination Controls */}
+            {Array.isArray(products) && products.length > 0 && totalPages > 1 && (
+              <div className="mt-12 flex justify-center items-center space-x-4">
+                <button
+                  onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                  disabled={currentPage === 1 || filterLoading}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                
+                <div className="flex space-x-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      disabled={filterLoading}
+                      className={`px-3 py-2 rounded-lg transition-colors ${
+                        currentPage === page
+                          ? 'bg-black text-white'
+                          : 'border border-gray-300 hover:bg-gray-50'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                  disabled={currentPage === totalPages || filterLoading}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            
+            {/* Products count info */}
+            {Array.isArray(products) && products.length > 0 && (
+              <div className="mt-6 text-center text-sm text-gray-600">
+                Showing {((currentPage - 1) * productsPerPage) + 1} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts} products
               </div>
             )}
           </div>

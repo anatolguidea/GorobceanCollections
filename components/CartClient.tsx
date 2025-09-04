@@ -8,7 +8,6 @@ import {
   Trash2, 
   Plus, 
   Minus,
-  Heart,
   Eye,
   Star,
   ArrowLeft,
@@ -21,6 +20,8 @@ import {
 import { getImageUrl } from '../utils/imageUtils'
 import Link from 'next/link'
 import Notification from './Notification'
+import { api } from '../utils/api'
+import Image from 'next/image'
 
 interface CartItem {
   _id: string
@@ -93,6 +94,12 @@ const CartClient = () => {
   const handleOrderSubmit = async () => {
     if (!cart || !userToken) return
 
+    // Validate cart has items
+    if (!cart.items || cart.items.length === 0) {
+      showNotification('Your cart is empty. Please add items before placing an order.', 'error')
+      return
+    }
+
     // Validate form
     const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
     for (const field of requiredFields) {
@@ -106,41 +113,46 @@ const CartClient = () => {
 
     try {
       const orderData = {
-        items: cart.items.map(item => ({
+        customerDetails: {
+          firstName: customerForm.firstName,
+          lastName: customerForm.lastName,
+          email: customerForm.email,
+          phone: customerForm.phone,
+          address: customerForm.address,
+          city: customerForm.city,
+          state: customerForm.state,
+          zipCode: customerForm.zipCode,
+          country: customerForm.country || 'USA'
+        },
+        items: (cart.items || []).map(item => ({
           product: item.product._id,
           size: item.size,
           color: item.color,
           quantity: item.quantity,
           price: item.product.price
         })),
-        customerInfo: customerForm,
         subtotal: cart.subtotal,
         tax: cart.tax,
-        shipping: cart.shipping,
-        total: cart.total
+        shipping: cart.shipping?.cost || 0,
+        total: cart.total,
+        paymentMethod: 'Cash on Delivery',
+        status: 'pending'
       }
 
-      const response = await fetch('http://localhost:5001/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify(orderData)
-      })
-
-      if (response.ok) {
-        showNotification('Order submitted successfully!', 'success')
-        // Clear cart and redirect to confirmation
-        setTimeout(() => {
-          router.push('/checkout?success=true')
-        }, 1500)
-      } else {
-        const errorData = await response.json()
-        showNotification(errorData.message || 'Failed to submit order', 'error')
-      }
+      console.log('Submitting order data:', orderData)
+      const response = await api.orders.create(orderData)
+      console.log('Order created successfully:', response)
+      
+      showNotification('Order placed successfully! You will receive a confirmation email shortly.', 'success')
+      
+      // Clear cart and redirect to confirmation
+      setTimeout(() => {
+        router.push('/checkout?success=true')
+      }, 2000)
     } catch (error) {
-      showNotification('An error occurred while submitting the order', 'error')
+      console.error('Order submission error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while placing your order. Please try again.'
+      showNotification(errorMessage, 'error')
     } finally {
       setSubmittingOrder(false)
     }
@@ -158,28 +170,37 @@ const CartClient = () => {
     }
   }, [])
 
+  // Listen for cart update events
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      const token = localStorage.getItem('token')
+      if (token) {
+        fetchCart(token)
+      }
+    }
+
+    window.addEventListener('cartUpdated', handleCartUpdate)
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
+  }, [])
+
   // Fetch recommended products
   useEffect(() => {
-    if (cart && cart.items.length > 0) {
+    if (cart && cart.items && cart.items.length > 0) {
       fetchRecommendedProducts()
     }
   }, [cart])
 
   const fetchCart = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5001/api/cart', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setCart(data.data)
+      const response = await api.cart.get()
+      console.log('Cart API response:', response)
+      if (response.success && response.data && response.data.data) {
+        setCart(response.data.data)
       } else {
         setError('Failed to fetch cart')
       }
     } catch (error) {
+      console.error('Cart fetch error:', error)
       setError('An error occurred while fetching cart')
     } finally {
       setLoading(false)
@@ -189,10 +210,9 @@ const CartClient = () => {
   const fetchRecommendedProducts = async () => {
     setLoadingRecommendations(true)
     try {
-      const response = await fetch('http://localhost:5001/api/products?limit=4')
-      if (response.ok) {
-        const data = await response.json()
-        setRecommendedProducts(data.data.products || [])
+      const data = await api.products.getAll({ limit: 4 })
+      if (data.success && data.data && data.data.success && data.data.data && Array.isArray(data.data.data.products)) {
+        setRecommendedProducts(data.data.data.products)
       }
     } catch (error) {
       console.error('Error fetching recommended products:', error)
@@ -206,33 +226,22 @@ const CartClient = () => {
 
     setUpdating(itemId)
     try {
-      const response = await fetch(`http://localhost:5001/api/cart/items/${itemId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify({ quantity: newQuantity })
+      await api.cart.updateItem(itemId, { quantity: newQuantity })
+      
+      // Update local cart state
+      setCart(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          items: prev.items.map(item => 
+            item._id === itemId ? { ...item, quantity: newQuantity } : item
+          )
+        }
       })
-
-      if (response.ok) {
-        // Update local cart state
-        setCart(prev => {
-          if (!prev) return prev
-          return {
-            ...prev,
-            items: prev.items.map(item => 
-              item._id === itemId ? { ...item, quantity: newQuantity } : item
-            )
-          }
-        })
-        
-        // Recalculate totals
-        recalculateTotals()
-        showNotification('Cart updated successfully')
-      } else {
-        showNotification('Failed to update cart', 'error')
-      }
+      
+      // Recalculate totals
+      recalculateTotals()
+      showNotification('Cart updated successfully')
     } catch (error) {
       showNotification('An error occurred while updating cart', 'error')
     } finally {
@@ -242,27 +251,18 @@ const CartClient = () => {
 
   const removeItem = async (itemId: string) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/cart/items/${itemId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${userToken}`
+      await api.cart.removeItem(itemId)
+      
+      setCart(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          items: prev.items.filter(item => item._id !== itemId)
         }
       })
-
-      if (response.ok) {
-        setCart(prev => {
-          if (!prev) return prev
-          return {
-            ...prev,
-            items: prev.items.filter(item => item._id !== itemId)
-          }
-        })
-        
-        recalculateTotals()
-        showNotification('Item removed from cart')
-      } else {
-        showNotification('Failed to remove item', 'error')
-      }
+      
+      recalculateTotals()
+      showNotification('Item removed from cart')
     } catch (error) {
       showNotification('An error occurred while removing item', 'error')
     }
@@ -271,7 +271,7 @@ const CartClient = () => {
   const recalculateTotals = () => {
     if (!cart) return
 
-    const subtotal = cart.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
+    const subtotal = cart.items?.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) || 0
     const tax = subtotal * 0.08 // 8% tax
     const shipping = subtotal > 100 ? 0 : 10 // Free shipping over $100
     const total = subtotal + tax + shipping
@@ -288,31 +288,6 @@ const CartClient = () => {
     })
   }
 
-  const addToWishlist = async (productId: string) => {
-    if (!userToken) {
-      showNotification('Please log in to add items to wishlist', 'error')
-      return
-    }
-
-    try {
-      const response = await fetch('http://localhost:5001/api/wishlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify({ productId })
-      })
-
-      if (response.ok) {
-        showNotification('Added to wishlist')
-      } else {
-        showNotification('Failed to add to wishlist', 'error')
-      }
-    } catch (error) {
-      showNotification('An error occurred while adding to wishlist', 'error')
-    }
-  }
 
   if (loading) {
     return (
@@ -346,7 +321,7 @@ const CartClient = () => {
     )
   }
 
-  if (!cart || cart.items.length === 0) {
+  if (!cart || !cart.items || cart.items.length === 0) {
     return (
       <main className="pt-20 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -382,7 +357,7 @@ const CartClient = () => {
             Shopping Cart
           </h1>
           <p className="text-gray-600 mt-2">
-            {cart.items.length} item{cart.items.length !== 1 ? 's' : ''} in your cart
+            {cart.items?.length || 0} item{(cart.items?.length || 0) !== 1 ? 's' : ''} in your cart
           </p>
         </div>
 
@@ -390,7 +365,7 @@ const CartClient = () => {
           {/* Cart Items */}
           <div className="lg:col-span-2">
             <div className="bg-white border border-gray-200">
-              {cart.items.map((item) => (
+              {(cart.items || []).map((item) => (
                 <motion.div
                   key={item._id}
                   initial={{ opacity: 0, y: 20 }}
@@ -399,9 +374,11 @@ const CartClient = () => {
                 >
                   {/* Product Image */}
                   <div className="w-24 h-24 bg-gray-100 mr-6 overflow-hidden">
-                    <img
+                    <Image
                       src={getImageUrl(item.product.images[0]?.url)}
                       alt={item.product.images[0]?.alt || item.product.name}
+                      width={96}
+                      height={96}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -414,13 +391,6 @@ const CartClient = () => {
                       <span>Color: {item.color}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => addToWishlist(item.product._id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                        title="Add to Wishlist"
-                      >
-                        <Heart className="w-5 h-5" />
-                      </button>
                       <Link
                         href={`/products/${item.product._id}`}
                         className="text-gray-400 hover:text-black transition-colors"
@@ -658,10 +628,12 @@ const CartClient = () => {
                   viewport={{ once: true }}
                   className="bg-white border border-gray-200 group"
                 >
-                  <div className="aspect-square bg-gray-100 overflow-hidden">
-                    <img
+                  <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
+                    <Image
                       src={getImageUrl(product.images[0]?.url)}
                       alt={product.images[0]?.alt || product.name}
+                      width={400}
+                      height={400}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
@@ -669,12 +641,6 @@ const CartClient = () => {
                     <h3 className="font-medium text-black mb-2 line-clamp-2">{product.name}</h3>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-black">${product.price}</span>
-                      <button
-                        onClick={() => addToWishlist(product._id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <Heart className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
                 </motion.div>

@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Lock, CreditCard, Truck, MapPin, Phone, Mail, Check } from 'lucide-react'
+import { ArrowLeft, Lock, CreditCard, Truck, MapPin, Phone, Mail, Check, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { api } from '../utils/api'
 
 interface CheckoutForm {
   // Shipping Information
@@ -34,7 +36,9 @@ interface CheckoutForm {
 }
 
 const CheckoutClient = () => {
+  const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState<'shipping' | 'payment' | 'review'>('shipping')
+  const [isSuccess, setIsSuccess] = useState(false)
   const [formData, setFormData] = useState<CheckoutForm>({
     firstName: '',
     lastName: '',
@@ -76,6 +80,13 @@ const CheckoutClient = () => {
       setNotification(prev => ({ ...prev, isVisible: false }))
     }, 3000)
   }
+
+  // Check for success parameter
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      setIsSuccess(true)
+    }
+  }, [searchParams])
 
   // Mock cart data
   const cartItems = [
@@ -144,22 +155,57 @@ const CheckoutClient = () => {
 
   const handleSubmit = async () => {
     try {
-      // Simulate order submission
-      showNotification('Order placed successfully!', 'success')
-      
-      // In a real app, you would submit to your API here
-      // const response = await fetch('/api/orders', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ formData, cartItems, total })
-      // })
+      // Validate required fields
+      const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
+      for (const field of requiredFields) {
+        if (!formData[field as keyof CheckoutForm]) {
+          showNotification(`Please fill in ${field}`, 'error')
+          return
+        }
+      }
+
+      // Create order data
+      const orderData = {
+        customerDetails: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country
+        },
+        items: cartItems.map(item => ({
+          product: item.id, // This should be the actual product ID
+          size: item.size,
+          color: item.color,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: subtotal,
+        tax: tax,
+        shipping: shipping,
+        total: total,
+        paymentMethod: 'Credit Card', // or formData.paymentMethod
+        status: 'pending'
+      }
+
+      // Submit order to API using the api utility
+      const response = await api.orders.create(orderData)
+      console.log('Order created successfully:', response)
+
+      showNotification('Order placed successfully! You will receive a confirmation email shortly.', 'success')
       
       // Redirect to success page
       setTimeout(() => {
         window.location.href = '/checkout?success=true'
-      }, 1500)
+      }, 2000)
     } catch (error) {
-      showNotification('Failed to place order. Please try again.', 'error')
+      console.error('Order submission error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to place order. Please try again.'
+      showNotification(errorMessage, 'error')
     }
   }
 
@@ -168,6 +214,65 @@ const CheckoutClient = () => {
     { id: 'payment', label: 'Payment', icon: CreditCard },
     { id: 'review', label: 'Review', icon: Check }
   ]
+
+  // Success page
+  if (isSuccess) {
+    return (
+      <main className="pt-20 pb-16">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center"
+          >
+            <div className="mb-8">
+              <CheckCircle className="h-24 w-24 text-green-500 mx-auto mb-6" />
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                Order Placed Successfully!
+              </h1>
+              <p className="text-lg text-gray-600 mb-8">
+                Thank you for your purchase. We've received your order and will process it shortly.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6 mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">What's Next?</h2>
+              <div className="space-y-3 text-left">
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">1</div>
+                  <span className="text-gray-700">You'll receive an order confirmation email shortly</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">2</div>
+                  <span className="text-gray-700">We'll prepare your items for shipping</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">3</div>
+                  <span className="text-gray-700">You'll receive tracking information once shipped</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/shop"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-900 hover:bg-gray-800 transition-colors duration-200"
+              >
+                Continue Shopping
+              </Link>
+              <Link
+                href="/account"
+                className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
+              >
+                View My Orders
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="pt-20 pb-16">

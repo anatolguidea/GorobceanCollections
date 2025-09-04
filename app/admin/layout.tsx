@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { api } from '../../utils/api'
 import { 
   LayoutDashboard, 
   Package, 
@@ -33,21 +34,20 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         return
       }
 
-      const response = await fetch('http://localhost:5001/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await api.auth.getProfile()
+      console.log('Admin layout auth check:', response)
 
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data.role === 'admin') {
-          setUser(data.data)
+      if (response.success && response.data && response.data.success && response.data.data) {
+        if (response.data.data.role === 'admin') {
+          setUser(response.data.data)
           setIsAdmin(true)
+          console.log('Admin access granted')
         } else {
+          console.log('Not admin, redirecting')
           router.push('/?error=unauthorized')
         }
       } else {
+        console.log('Auth failed, redirecting to login')
         localStorage.removeItem('token')
         router.push('/account?returnTo=/admin')
       }

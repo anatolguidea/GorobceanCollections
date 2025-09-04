@@ -8,7 +8,7 @@ const User = require('../models/User');
 router.get('/count', auth, async (req, res) => {
   try {
     // Check if user is admin
-    if (!req.user.isAdmin) {
+    if (!req.user.role || req.user.role !== 'admin') {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. Admin only.' 

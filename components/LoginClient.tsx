@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { api } from '../utils/api'
 
 const LoginClient = () => {
   const [email, setEmail] = useState('')
@@ -18,20 +19,21 @@ const LoginClient = () => {
     setLoading(true)
     setError('')
 
+    console.log('Login attempt:', { email, password })
+
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
+      console.log('Calling api.auth.login...')
+      const response = await api.auth.login({ email, password })
+      console.log('Login response:', response)
 
-      const data = await response.json()
-
-      if (data.success) {
-        localStorage.setItem('token', data.data.token)
-        localStorage.setItem('user', JSON.stringify(data.data.user))
+      if (response.success && response.data && response.data.success && response.data.data) {
+        const { token, user } = response.data.data
+        
+        localStorage.setItem('token', token)
+        localStorage.setItem('user', JSON.stringify(user))
+        
+        console.log('Token stored:', token)
+        console.log('User stored:', user)
         
         // Dispatch custom events to update header
         window.dispatchEvent(new Event('storage'))
@@ -40,7 +42,8 @@ const LoginClient = () => {
         // Redirect to the original page or home
         router.push(redirectTo)
       } else {
-        setError(data.message || 'Login failed')
+        console.error('Login failed:', response)
+        setError(response.message || 'Login failed')
       }
     } catch (err) {
       setError('An error occurred. Please try again.')

@@ -10,7 +10,7 @@ export const getImageUrl = (imagePath: string): string => {
   }
   
   // Get backend URL from environment or default
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001'
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
   
   // If it's a relative path starting with /uploads, construct the full backend URL
   if (imagePath.startsWith('/uploads/')) {
@@ -28,7 +28,7 @@ export const getImageUrl = (imagePath: string): string => {
 
 // Utility function to get the correct image URL for the current environment
 export const getImageUrlForEnv = (imagePath: string): string => {
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001'
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
   
   if (!imagePath) return '/images/products/hero-product-image.jpg'
   

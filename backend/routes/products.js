@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
+const { cacheConfigs, invalidateCache } = require('../middleware/cache');
 const Product = require('../models/Product');
 const multer = require('multer');
 const path = require('path');
@@ -41,7 +42,7 @@ const upload = multer({
 });
 
 // Get all products with filtering and pagination
-router.get('/', async (req, res) => {
+router.get('/', cacheConfigs.products, async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -156,7 +157,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single product by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', cacheConfigs.product, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('category', 'name slug description')
@@ -190,7 +191,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Get featured products
-router.get('/featured/featured', async (req, res) => {
+router.get('/featured/featured', cacheConfigs.featuredProducts, async (req, res) => {
   try {
     const featuredProducts = await Product.find({ 
       isFeatured: true,
@@ -357,6 +358,9 @@ router.post('/upload', [
 
     await product.save();
 
+    // Invalidate product caches
+    invalidateCache.product(product._id);
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
@@ -403,6 +407,9 @@ router.post('/', [
 
     const product = new Product(req.body);
     await product.save();
+
+    // Invalidate product caches
+    invalidateCache.product(product._id);
 
     res.status(201).json({
       success: true,
@@ -681,6 +688,9 @@ router.delete('/:id', auth, async (req, res) => {
 
     // Delete the product from database
     await Product.findByIdAndDelete(req.params.id);
+
+    // Invalidate product caches
+    invalidateCache.product(req.params.id);
 
     res.json({
       success: true,

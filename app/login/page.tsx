@@ -5,11 +5,11 @@ import LoginClient from '@/components/LoginClient'
 
 export const metadata: Metadata = {
   title: 'Sign In - Gorobcean Collections',
-  description: 'Sign in to your account to access your wishlist, cart, and order history.',
+  description: 'Sign in to your account to access your cart and order history.',
   keywords: 'sign in, login, authentication, account, gorobcean, collections',
   openGraph: {
     title: 'Sign In - Gorobcean Collections',
-    description: 'Sign in to your account to access your wishlist, cart, and order history.',
+    description: 'Sign in to your account to access your cart and order history.',
     type: 'website',
   },
 }

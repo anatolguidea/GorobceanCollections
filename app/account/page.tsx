@@ -5,8 +5,8 @@ import AccountClient from '@/components/AccountClient'
 
 export const metadata: Metadata = {
   title: 'Account - Gorobcean Collections',
-  description: 'Sign in to your account or create a new one. Manage your profile, orders, wishlist, and addresses.',
-  keywords: 'account, login, sign up, profile, orders, wishlist, addresses, gorobcean, collections',
+  description: 'Sign in to your account or create a new one. Manage your profile, orders, and addresses.',
+  keywords: 'account, login, sign up, profile, orders, addresses, gorobcean, collections',
   openGraph: {
     title: 'Account - Gorobcean Collections',
     description: 'Sign in to your account or create a new one.',

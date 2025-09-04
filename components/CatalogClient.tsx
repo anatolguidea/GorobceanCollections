@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { api } from '../utils/api'
 
 interface Category {
   _id: string
@@ -24,19 +25,16 @@ const CatalogClient = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true)
-        const response = await fetch('http://localhost:5001/api/categories')
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories')
-        }
-        const data = await response.json()
-        if (data.success) {
-          setCategories(data.data)
+        const response = await api.categories.getAll()
+        if (response.success && response.data && response.data.success && Array.isArray(response.data.data)) {
+          setCategories(response.data.data)
         } else {
-          throw new Error(data.message || 'Failed to fetch categories')
+          throw new Error('Invalid categories response')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
         console.error('Error fetching categories:', err)
+        setCategories([])
       } finally {
         setLoading(false)
       }
@@ -113,7 +111,7 @@ const CatalogClient = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
-            {categories.map((category, index) => (
+            {Array.isArray(categories) && categories.map((category, index) => (
               <motion.div
                 key={category._id}
                 initial={{ opacity: 0, y: 20 }}

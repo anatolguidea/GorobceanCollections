@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { getImageUrl } from '../utils/imageUtils'
+import { api } from '../utils/api'
 
 interface Product {
   _id: string
@@ -29,18 +30,14 @@ const NewestProducts = () => {
         setLoading(true)
         console.log('Fetching newest products...')
         // Fetch newest products by creation date, limit to 4 products
-        const response = await fetch('http://localhost:5001/api/products?limit=4&sortBy=createdAt&sortOrder=desc')
-        console.log('Response status:', response.status)
-        if (!response.ok) {
-          throw new Error('Failed to fetch newest products')
-        }
-        const data = await response.json()
-        console.log('Newest products data:', data)
-        if (data.success) {
-          setProducts(data.data.products)
-          console.log('Products set:', data.data.products.length)
+        const response = await api.products.getAll({ limit: 4, sortBy: 'createdAt', sortOrder: 'desc' })
+        console.log('Newest products response:', response)
+        
+        if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data.products)) {
+          setProducts(response.data.data.products)
+          console.log('Products set:', response.data.data.products.length)
         } else {
-          throw new Error(data.message || 'Failed to fetch newest products')
+          throw new Error('Failed to fetch newest products')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -121,7 +118,7 @@ const NewestProducts = () => {
 
         {/* Products Horizontal Gallery */}
         <div className="flex gap-6 overflow-x-auto pb-4 justify-center">
-          {products.length === 0 ? (
+          {!Array.isArray(products) || products.length === 0 ? (
             <div className="w-full text-center py-12">
               <p className="text-lg text-gray-600">No newest products available at the moment.</p>
             </div>
@@ -141,7 +138,7 @@ const NewestProducts = () => {
               >
                 <div className="relative bg-white overflow-hidden">
                   {/* Product Image - Model wearing the clothing */}
-                  <div className="relative h-[300px] overflow-hidden bg-gray-100">
+                  <div className="relative h-[400px] overflow-hidden bg-gray-100">
                     <img
                       src={getImageUrl(product.images[0]?.url)}
                       alt={product.images[0]?.alt || product.name}

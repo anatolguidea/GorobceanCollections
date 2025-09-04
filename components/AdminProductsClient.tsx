@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { api } from '../utils/api'
 import { 
   Package, 
   Plus, 
@@ -41,10 +42,9 @@ const AdminProductsClient = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/products?limit=100')
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data.data?.products || [])
+      const response = await api.products.getAll({ limit: 100 })
+      if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data.products)) {
+        setProducts(response.data.data.products)
       }
     } catch (error) {
       console.error('Error fetching products:', error)
@@ -55,17 +55,9 @@ const AdminProductsClient = () => {
 
   const handleDeleteProduct = async (productId: string) => {
     try {
-      const token = localStorage.getItem('token')
-      if (!token) return
+      const response = await api.products.delete(productId)
 
-      const response = await fetch(`http://localhost:5001/api/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
+      if (response.success) {
         setProducts(products.filter(p => p._id !== productId))
         setShowDeleteModal(false)
         setProductToDelete(null)

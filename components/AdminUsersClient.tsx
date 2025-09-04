@@ -12,6 +12,7 @@ import {
   Trash2,
   UserPlus
 } from 'lucide-react'
+import { api } from '../utils/api'
 
 interface User {
   _id: string
@@ -44,17 +45,20 @@ const AdminUsersClient = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token')
-      if (!token) return
+      if (!token) {
+        console.log('No token found')
+        return
+      }
 
-      const response = await fetch('http://localhost:5001/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUsers(data.data?.users || [])
+      console.log('Fetching users with token:', token.substring(0, 20) + '...')
+      const response = await api.users.getAll()
+      console.log('Users API response:', response)
+      
+      if (response.success && response.data && response.data.data) {
+        setUsers(response.data.data.users || [])
+        console.log('Users loaded:', response.data.data.users?.length || 0)
+      } else {
+        console.error('Failed to fetch users:', response)
       }
     } catch (error) {
       console.error('Error fetching users:', error)

@@ -4,24 +4,45 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const expressSanitizer = require('express-sanitizer');
 require('dotenv').config();
 
-// Import database connection
+// Import configuration and database connection
+const { getConfig, validateEnvironment } = require('./config');
 const connectDB = require('./config/database');
+const { logger, stream, logHelpers } = require('./config/logger');
+
+// Validate environment and get configuration
+validateEnvironment();
+const config = getConfig();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = config.port;
+
+// Import middleware
+const { responseFormatter } = require('./middleware/responseFormatter');
+const { getCacheStats } = require('./middleware/cache');
+const { healthCheckMiddleware } = require('./middleware/healthCheck');
+const { auth } = require('./middleware/auth');
+const { 
+  sanitizeInput, 
+  mongoSanitizer, 
+  xssProtection, 
+  rateLimiters, 
+  securityHeaders, 
+  requestSizeLimit, 
+  securityLogger 
+} = require('./middleware/security');
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const cartRoutes = require('./routes/cart');
-const wishlistRoutes = require('./routes/wishlist');
 const orderRoutes = require('./routes/orders');
 const userRoutes = require('./routes/users');
 
-// Security middleware with custom CSP for images
+// Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -30,7 +51,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https:", "data:"],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
-      imgSrc: ["'self'", "data:", "http://localhost:5001", "https://localhost:5001", "blob:"],
+      imgSrc: ["'self'", "data:", "http://localhost:5001", "https://localhost:5001", "blob:", "https:"],
       objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],
@@ -40,10 +61,29 @@ app.use(helmet({
   }
 }));
 
+// Additional security headers
+app.use(securityHeaders);
+
+// Request size limiting
+app.use(requestSizeLimit);
+
+// Security logging
+app.use(securityLogger);
+
+// Input sanitization
+app.use(expressSanitizer());
+app.use(sanitizeInput);
+
+// MongoDB injection protection
+app.use(mongoSanitizer);
+
+// XSS protection
+app.use(xssProtection);
+
 // CORS configuration
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
+    config.frontendUrl,
     'http://localhost:3000',
     'http://127.0.0.1:3000'
   ],
@@ -52,19 +92,31 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting - more lenient for development
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 requests per 15 min in development
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV !== 'production' && req.path === '/health' // Skip rate limiting for health checks in dev
-});
-app.use('/api/', limiter);
+// Rate limiting - skip in development if DISABLE_RATE_LIMIT is set
+if (!process.env.DISABLE_RATE_LIMIT) {
+  app.use('/api/', rateLimiters.general);
+  app.use('/api/auth/', rateLimiters.auth);
+  app.use('/api/products/', rateLimiters.products);
+  app.use('/api/admin/', rateLimiters.admin);
+  app.use('/api/upload/', rateLimiters.upload);
+} else {
+  console.log('⚠️  Rate limiting disabled for development');
+}
 
 // Logging middleware
-app.use(morgan('combined'));
+app.use(morgan('combined', { stream }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  
+  res.on('finish', () => {
+    const responseTime = Date.now() - startTime;
+    logHelpers.logRequest(req, res, responseTime);
+  });
+  
+  next();
+});
 
 // Compression middleware
 app.use(compression());
@@ -73,11 +125,14 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Response formatter middleware
+app.use(responseFormatter);
+
 // Static files with CORS headers
 app.use('/uploads', (req, res, next) => {
   // Set CORS headers for images
   const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
+    config.frontendUrl,
     'http://localhost:3000',
     'http://127.0.0.1:3000'
   ];
@@ -99,14 +154,19 @@ app.use('/uploads', (req, res, next) => {
   }
 }, express.static('uploads'));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'StyleHub API is running',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
+// Health check endpoints
+app.get('/health', healthCheckMiddleware(false));
+app.get('/health/detailed', healthCheckMiddleware(true));
+
+// Cache statistics endpoint (admin only)
+app.get('/cache/stats', auth, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin only.'
+    });
+  }
+  getCacheStats(req, res);
 });
 
 // API routes
@@ -114,7 +174,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 
@@ -128,7 +187,14 @@ app.use('*', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  // Log the error
+  logHelpers.logError(err, {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+    userId: req.user?.userId || 'anonymous',
+  });
   
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
@@ -159,13 +225,14 @@ const startServer = async () => {
     await connectDB();
     
     app.listen(PORT, () => {
-      console.log(`🚀 StyleHub API server running on port ${PORT}`);
-      console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-      console.log(`🗄️  Database: Connected to MongoDB`);
+      logger.info(`🚀 StyleHub API server running on port ${PORT}`);
+      logger.info(`📱 Frontend URL: ${config.frontendUrl}`);
+      logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
+      logger.info(`🗄️  Database: Connected to MongoDB`);
+      logger.info(`🌍 Environment: ${config.nodeEnv}`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };
