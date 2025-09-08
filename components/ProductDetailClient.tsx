@@ -16,7 +16,7 @@ import {
   ChevronDown,
   Ruler
 } from 'lucide-react'
-import { getImageUrl } from '../utils/imageUtils'
+import { getImageUrl, getCloudinaryUrl } from '../utils/imageUtils'
 import { api } from '../utils/api'
 import { isAuthenticated } from '../utils/auth'
 import Image from 'next/image'
@@ -38,7 +38,11 @@ interface Product {
   sizes: string[]
   colors: Array<{ 
     name: string
-    hex: string
+    colorImage?: {
+      url: string
+      alt: string
+      publicId?: string
+    }
     inStock: boolean
   }>
   inventory: Array<{ 
@@ -75,10 +79,104 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
   const [selectedColor, setSelectedColor] = useState<string>('')
   const [quantity, setQuantity] = useState(1)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [displayedImages, setDisplayedImages] = useState<Array<{ 
+    url: string
+    alt: string
+    isPrimary?: boolean
+    publicId?: string
+    color?: string | null
+    isColorRepresentation?: boolean
+  }>>([])
   const [viewingCustomers] = useState(Math.floor(Math.random() * 10) + 7)
   const [addingToCart, setAddingToCart] = useState(false)
   const [showSizeGuide, setShowSizeGuide] = useState(false)
   const [stockWarning, setStockWarning] = useState(false)
+
+  // Function to get images for a specific color
+  const getImagesForColor = (colorName: string) => {
+    if (!product) return []
+    
+    // First try to find color-specific images (excluding color representation images)
+    const colorImages = product.images.filter(img => 
+      img.color === colorName && 
+      img.isColorRepresentation !== true
+    )
+    
+    if (colorImages.length > 0) {
+      // Sort by isPrimary (primary first) then by creation order
+      const sortedImages = colorImages.sort((a, b) => {
+        if (a.isPrimary && !b.isPrimary) return -1
+        if (!a.isPrimary && b.isPrimary) return 1
+        return 0
+      })
+      
+      console.log(`=== Images for color "${colorName}" ===`);
+      console.log('Total color-specific images:', sortedImages.length);
+      sortedImages.forEach((img, i) => {
+        console.log(`Image ${i+1}: ${img.alt} - ${img.url} (Primary: ${img.isPrimary})`);
+      });
+      
+      return sortedImages
+    }
+    
+    // If no color-specific images, return general images (color: null or undefined)
+    const generalImages = product.images.filter(img => 
+      (img.color === null || img.color === undefined) && 
+      img.isColorRepresentation !== true
+    )
+    
+    if (generalImages.length > 0) {
+      // Sort by isPrimary (primary first) then by creation order
+      const sortedImages = generalImages.sort((a, b) => {
+        if (a.isPrimary && !b.isPrimary) return -1
+        if (!a.isPrimary && b.isPrimary) return 1
+        return 0
+      })
+      
+      console.log(`=== Using general images for color "${colorName}" ===`);
+      console.log('Total general images:', sortedImages.length);
+      
+      return sortedImages
+    }
+    
+    // Fallback: return all non-color-representation images
+    const fallbackImages = product.images.filter(img => img.isColorRepresentation !== true)
+    console.log(`=== Using fallback images for color "${colorName}" ===`);
+    console.log('Total fallback images:', fallbackImages.length);
+    
+    return fallbackImages.sort((a, b) => {
+      if (a.isPrimary && !b.isPrimary) return -1
+      if (!a.isPrimary && b.isPrimary) return 1
+      return 0
+    })
+  }
+
+  // Function to get color representation image for a specific color
+  const getColorRepresentationImage = (colorName: string) => {
+    if (!product) return null
+    
+    return product.images.find(img => 
+      img.color === colorName && 
+      img.isColorRepresentation === true
+    ) || null
+  }
+
+  // Update displayed images when color changes
+  useEffect(() => {
+    if (product && selectedColor) {
+      const imagesForColor = getImagesForColor(selectedColor)
+      setDisplayedImages(imagesForColor)
+      setActiveImageIndex(0) // Reset to first image when color changes
+    }
+  }, [selectedColor, product])
+
+  // Set initial displayed images when product loads
+  useEffect(() => {
+    if (product && selectedColor) {
+      const imagesForColor = getImagesForColor(selectedColor)
+      setDisplayedImages(imagesForColor)
+    }
+  }, [product, selectedColor])
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -119,18 +217,18 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
   // Keyboard navigation for images
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!product || product.images.length <= 1) return
+      if (!displayedImages || displayedImages.length <= 1) return
       
       if (event.key === 'ArrowLeft') {
-        setActiveImageIndex(activeImageIndex > 0 ? activeImageIndex - 1 : product.images.length - 1)
+        setActiveImageIndex(activeImageIndex > 0 ? activeImageIndex - 1 : displayedImages.length - 1)
       } else if (event.key === 'ArrowRight') {
-        setActiveImageIndex(activeImageIndex < product.images.length - 1 ? activeImageIndex + 1 : 0)
+        setActiveImageIndex(activeImageIndex < displayedImages.length - 1 ? activeImageIndex + 1 : 0)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [product, activeImageIndex])
+  }, [displayedImages, activeImageIndex])
 
   const handleAddToCart = async () => {
     if (!product || !selectedSize || !selectedColor) {
@@ -187,10 +285,12 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Image skeleton */}
             <div className="animate-pulse">
-              <div className="bg-gray-200 h-[800px] rounded-lg mb-6"></div>
+              <div className="relative h-[750px] overflow-hidden mb-6">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-full w-full bg-gray-200"></div>
+              </div>
               <div className="flex justify-center space-x-4">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="bg-gray-200 h-20 w-16 rounded-lg"></div>
+                  <div key={i} className="bg-gray-200 h-20 w-16"></div>
                 ))}
               </div>
             </div>
@@ -220,7 +320,7 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
     )
   }
 
-  const primaryImage = product.images.find(img => img.isPrimary) || product.images[0]
+  const primaryImage = displayedImages.find(img => img.isPrimary) || displayedImages[0]
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0
@@ -240,29 +340,36 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
               transition={{ duration: 0.6 }}
               className="mb-6"
             >
-              <div className="relative">
+              <div className="relative h-[750px] overflow-hidden">
                 <Image
-                  src={getImageUrl(product.images[activeImageIndex]?.url || primaryImage?.url)}
-                  alt={product.images[activeImageIndex]?.alt || primaryImage?.alt || product.name}
+                  src={getCloudinaryUrl(displayedImages[activeImageIndex]?.url || primaryImage?.url, {
+                    width: 800,
+                    height: 1200,
+                    quality: 'auto:best',
+                    format: 'auto',
+                    crop: 'limit'
+                  })}
+                  alt={displayedImages[activeImageIndex]?.alt || primaryImage?.alt || product.name}
                   width={800}
-                  height={1000}
-                  className="w-full h-[800px] object-cover rounded-lg"
+                  height={1200}
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-full w-full object-contain"
                   priority
+                  quality={95}
                   placeholder="blur"
                   blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                 />
                 
                 {/* Navigation Arrows */}
-                {product.images.length > 1 && (
+                {displayedImages.length > 1 && (
                   <>
                     <button
-                      onClick={() => setActiveImageIndex(activeImageIndex > 0 ? activeImageIndex - 1 : product.images.length - 1)}
+                      onClick={() => setActiveImageIndex(activeImageIndex > 0 ? activeImageIndex - 1 : displayedImages.length - 1)}
                       className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white border border-gray-200 rounded-full p-2 shadow-md hover:shadow-lg transition-all"
                     >
                       <ChevronUp className="w-5 h-5 text-gray-600 rotate-[-90deg]" />
                     </button>
                     <button
-                      onClick={() => setActiveImageIndex(activeImageIndex < product.images.length - 1 ? activeImageIndex + 1 : 0)}
+                      onClick={() => setActiveImageIndex(activeImageIndex < displayedImages.length - 1 ? activeImageIndex + 1 : 0)}
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white border border-gray-200 rounded-full p-2 shadow-md hover:shadow-lg transition-all"
                     >
                       <ChevronDown className="w-5 h-5 text-gray-600 rotate-[-90deg]" />
@@ -279,23 +386,30 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
               </div>
             </motion.div>
 
+
             {/* Thumbnail Images */}
-            {product.images.length > 1 && (
+            {displayedImages.length > 1 && (
               <div className="relative">
                 <div className="flex justify-center space-x-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {product.images.map((image, index) => (
+                  {displayedImages.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setActiveImageIndex(index)}
-                      className={`flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      className={`flex-shrink-0 w-12 h-16 overflow-hidden border-2 transition-all ${
                         index === activeImageIndex ? 'border-black scale-105' : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <Image
-                        src={getImageUrl(image.url)}
+                        src={getCloudinaryUrl(image.url, {
+                          width: 96,
+                          height: 128,
+                          quality: 'auto:good',
+                          format: 'auto',
+                          crop: 'fill'
+                        })}
                         alt={image.alt || product.name}
-                        width={64}
-                        height={80}
+                        width={96}
+                        height={128}
                         className="w-full h-full object-cover"
                       />
                     </button>
@@ -304,7 +418,7 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
                 
                 {/* Image counter */}
                 <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                  {activeImageIndex + 1} / {product.images.length}
+                  {activeImageIndex + 1} / {displayedImages.length}
                 </div>
               </div>
             )}
@@ -336,7 +450,7 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
 
             {/* Stock Warning */}
             {stockWarning && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="p-4">
                 <p className="text-red-600 text-sm font-medium">
                   Please hurry! Only {availableStock} left in stock
                 </p>
@@ -356,25 +470,59 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
                   <span className="text-black font-medium">Color: {selectedColor}</span>
                 </div>
                 <div className="flex space-x-3">
-                  {product.colors.map((color) => (
-                    <button
-                      key={color.name}
-                      onClick={() => setSelectedColor(color.name)}
-                      className={`w-12 h-12 rounded-full border-2 transition-all relative overflow-hidden ${
-                        selectedColor === color.name
-                          ? 'border-black scale-110'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      style={{ backgroundColor: color.hex || '#f3f4f6' }}
-                      title={color.name}
-                    >
-                      {selectedColor === color.name && (
-                        <div className="absolute inset-0 rounded-full border-2 border-black flex items-center justify-center">
-                          <div className="w-2 h-2 bg-black rounded-full"></div>
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {product.colors.map((color) => {
+                    // Get color representation image first, then fallback to first product image
+                    const colorRepresentationImage = getColorRepresentationImage(color.name)
+                    const colorImages = getImagesForColor(color.name)
+                    const colorThumbnail = colorRepresentationImage || colorImages[0]
+                    
+                    return (
+                      <button
+                        key={color.name}
+                        onClick={() => setSelectedColor(color.name)}
+                        className={`w-12 h-12 rounded-full transition-all relative overflow-hidden ${
+                          selectedColor === color.name
+                            ? 'border-4 border-black'
+                            : 'border border-gray-300 hover:border-gray-400'
+                        }`}
+                        title={color.name}
+                      >
+                        {colorRepresentationImage ? (
+                          <Image
+                            src={getCloudinaryUrl(colorRepresentationImage.url, {
+                              width: 96,
+                              height: 96,
+                              quality: 'auto:good',
+                              format: 'auto',
+                              crop: 'fill'
+                            })}
+                            alt={colorRepresentationImage.alt || `${product.name} in ${color.name}`}
+                            width={96}
+                            height={96}
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : colorThumbnail ? (
+                          <Image
+                            src={getCloudinaryUrl(colorThumbnail.url, {
+                              width: 96,
+                              height: 96,
+                              quality: 'auto:good',
+                              format: 'auto',
+                              crop: 'fill'
+                            })}
+                            alt={colorThumbnail.alt || `${product.name} in ${color.name}`}
+                            width={96}
+                            height={96}
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs font-medium bg-gray-200 rounded-full">
+                            {color.name}
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}

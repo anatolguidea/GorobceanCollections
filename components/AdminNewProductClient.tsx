@@ -15,6 +15,20 @@ import {
   CheckCircle
 } from 'lucide-react'
 
+interface ColorImageData {
+  file: File | null
+  alt: string
+  isPrimary: boolean
+  preview: string
+}
+
+interface ColorData {
+  name: string
+  colorImage: ColorImageData | null // Thumbnail image for color selection (required)
+  inStock: boolean
+  images: ColorImageData[] // Product images for this color
+}
+
 interface ProductFormData {
   name: string
   description: string
@@ -23,7 +37,7 @@ interface ProductFormData {
   category: string
   subcategory: string
   sizes: string[]
-  colors: Array<{ name: string; hex: string; inStock: boolean }>
+  colors: ColorData[]
   inventory: Array<{ size: string; color: string; quantity: string; reserved: string }>
   tags: string[]
   features: string[]
@@ -34,7 +48,7 @@ interface ProductFormData {
   isFeatured: boolean
   isActive: boolean
   salePercentage: number
-  images: Array<{ file: File | null; alt: string; isPrimary: boolean; preview: string }>
+  currentColorIndex: number
 }
 
 const AdminNewProductClient = () => {
@@ -47,7 +61,7 @@ const AdminNewProductClient = () => {
     category: '',
     subcategory: '',
     sizes: [],
-    colors: [{ name: 'Default', hex: '#000000', inStock: true }],
+    colors: [{ name: 'White', colorImage: null, inStock: true, images: [{ file: null, alt: '', isPrimary: true, preview: '' }] }],
     inventory: [],
     tags: [],
     features: ['High quality material'],
@@ -58,7 +72,7 @@ const AdminNewProductClient = () => {
     isFeatured: false,
     isActive: true,
     salePercentage: 0,
-    images: [{ file: null, alt: '', isPrimary: true, preview: '' }]
+    currentColorIndex: 0
   })
 
   const [loading, setLoading] = useState(false)
@@ -99,8 +113,14 @@ const AdminNewProductClient = () => {
       })
     })
     
-    setFormData(prev => ({ ...prev, inventory: newInventory }))
-  }, [formData.sizes, formData.colors])
+    // Only update if the inventory structure has actually changed
+    const currentInventoryKeys = formData.inventory.map(item => `${item.size}-${item.color}`).sort()
+    const newInventoryKeys = newInventory.map(item => `${item.size}-${item.color}`).sort()
+    
+    if (JSON.stringify(currentInventoryKeys) !== JSON.stringify(newInventoryKeys)) {
+      setFormData(prev => ({ ...prev, inventory: newInventory }))
+    }
+  }, [formData.sizes, formData.colors.map(c => c.name).join(',')])
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -124,11 +144,63 @@ const AdminNewProductClient = () => {
       if (field === 'features' || field === 'care' || field === 'materials') {
         newArray.push('')
       } else if (field === 'colors') {
-        newArray.push({ name: '', hex: '#000000', inStock: true })
-      } else if (field === 'images') {
-        newArray.push({ file: null, alt: '', isPrimary: false, preview: '' })
+        newArray.push({ name: '', colorImage: null, inStock: true, images: [{ file: null, alt: '', isPrimary: true, preview: '' }] })
       }
       return { ...prev, [field]: newArray }
+    })
+  }
+
+  const addColorImage = (colorIndex: number) => {
+    setFormData(prev => {
+      const newColors = [...prev.colors]
+      newColors[colorIndex].images.push({ file: null, alt: '', isPrimary: false, preview: '' })
+      return { ...prev, colors: newColors }
+    })
+  }
+
+  const removeColorImage = (colorIndex: number, imageIndex: number) => {
+    setFormData(prev => {
+      const newColors = [...prev.colors]
+      const colorImages = [...newColors[colorIndex].images]
+      
+      // Check if we're removing the primary image
+      const isRemovingPrimary = colorImages[imageIndex]?.isPrimary
+      
+      // Remove the image
+      colorImages.splice(imageIndex, 1)
+      
+      // If we removed the primary image and there are still images left, make the first one primary
+      if (isRemovingPrimary && colorImages.length > 0) {
+        colorImages[0].isPrimary = true
+      }
+      
+      // Update the color with the new images array
+      newColors[colorIndex] = {
+        ...newColors[colorIndex],
+        images: colorImages
+      }
+      
+      return { ...prev, colors: newColors }
+    })
+  }
+
+  const setPrimaryColorImage = (colorIndex: number, imageIndex: number) => {
+    setFormData(prev => {
+      const newColors = [...prev.colors]
+      const colorImages = [...newColors[colorIndex].images]
+      
+      // Update all images to set the correct one as primary
+      const updatedImages = colorImages.map((img, i) => ({
+        ...img,
+        isPrimary: i === imageIndex
+      }))
+      
+      newColors[colorIndex] = {
+        ...newColors[colorIndex],
+        images: updatedImages
+      }
+      
+      return { ...prev, colors: newColors }
     })
   }
 
@@ -140,41 +212,46 @@ const AdminNewProductClient = () => {
     })
   }
 
-  const handleImageUpload = (index: number, file: File) => {
+  const handleColorImageUpload = (colorIndex: number, imageIndex: number, file: File) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       const preview = e.target?.result as string
-      handleArrayFieldChange('images', index, { 
-        ...formData.images[index], 
-        file, 
-        preview 
+      setFormData(prev => {
+        const newColors = [...prev.colors]
+        newColors[colorIndex].images[imageIndex] = {
+          ...newColors[colorIndex].images[imageIndex],
+          file,
+          preview
+        }
+        return { ...prev, colors: newColors }
       })
     }
     reader.readAsDataURL(file)
   }
 
-  const handleImageRemove = (index: number) => {
-    if (formData.images[index].isPrimary && formData.images.length > 1) {
-      // If removing primary image, make the first remaining image primary
-      const newImages = formData.images.filter((_, i) => i !== index)
-      if (newImages.length > 0) {
-        newImages[0].isPrimary = true
-      }
-      setFormData(prev => ({ ...prev, images: newImages }))
-    } else {
-      removeArrayItem('images', index)
+  const handleColorRepresentationUpload = (colorIndex: number, file: File) => {
+    if (!file) return
+    
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const preview = e.target?.result as string
+      setFormData(prev => {
+        const newColors = [...prev.colors]
+        newColors[colorIndex] = {
+          ...newColors[colorIndex],
+          colorImage: {
+            file,
+            alt: `${newColors[colorIndex].name || 'Color'} color representation`,
+            isPrimary: false,
+            preview
+          }
+        }
+        return { ...prev, colors: newColors }
+      })
     }
+    reader.readAsDataURL(file)
   }
 
-  const setPrimaryImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.map((img, i) => ({
-        ...img,
-        isPrimary: i === index
-      }))
-    }))
-  }
 
   const handleInventoryChange = (size: string, color: string, field: 'quantity' | 'reserved', value: string) => {
     setFormData(prev => ({
@@ -190,22 +267,33 @@ const AdminNewProductClient = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     
+    console.log('Validating form with data:', formData)
+    
     if (!formData.name.trim()) newErrors.name = 'Product name is required'
     if (!formData.description.trim()) newErrors.description = 'Description is required'
     if (!formData.price || parseFloat(formData.price) <= 0) newErrors.price = 'Valid price is required'
     if (!formData.category) newErrors.category = 'Category is required'
     if (formData.sizes.length === 0) newErrors.sizes = 'At least one size is required'
     
-    // Check if colors have names (filter out empty ones)
+    // Check if colors have names and at least some images
     const validColors = formData.colors.filter(c => c.name.trim())
+    console.log('Valid colors found:', validColors)
+    
     if (validColors.length === 0) {
       newErrors.colors = 'At least one color with a name is required'
-    }
-    
-    // Check if images have files
-    const validImages = formData.images.filter(img => img.file)
-    if (validImages.length === 0) {
-      newErrors.images = 'At least one image is required'
+    } else {
+      for (let i = 0; i < validColors.length; i++) {
+        const color = validColors[i]
+        console.log(`Validating color ${i}:`, color)
+        
+        // Color representation image is required
+        if (!color.colorImage?.file) {
+          newErrors[`color_${i}_representation`] = 'Color representation image is required'
+        }
+        if (!color.images.some(img => img.file)) {
+          newErrors[`color_${i}_images`] = 'At least one product image is required for this color'
+        }
+      }
     }
     
     // Check if features have content (filter out empty ones)
@@ -220,6 +308,7 @@ const AdminNewProductClient = () => {
       newErrors.care = 'At least one care instruction is required'
     }
     
+    console.log('Validation errors:', newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -227,7 +316,10 @@ const AdminNewProductClient = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('Form data before validation:', formData)
+    
     if (!validateForm()) {
+      console.log('Validation failed, errors:', errors)
       return
     }
     
@@ -242,6 +334,7 @@ const AdminNewProductClient = () => {
       }
 
       // Prepare product data with proper types
+      const validColors = formData.colors.filter(c => c.name.trim())
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -250,7 +343,10 @@ const AdminNewProductClient = () => {
         category: formData.category,
         subcategory: formData.subcategory,
         sizes: formData.sizes,
-        colors: formData.colors.filter(c => c.name.trim()),
+        colors: validColors.map(color => ({
+          name: color.name,
+          inStock: color.inStock
+        })),
         inventory: formData.inventory
           .filter(item => item.quantity && parseFloat(item.quantity) > 0)
           .map(item => ({
@@ -298,21 +394,67 @@ const AdminNewProductClient = () => {
         formDataToSend.append('salePercentage', productData.salePercentage.toString())
       }
       
-      // Add images
-      const imageData = formData.images.filter(img => img.file)
-      if (imageData.length === 0) {
-        throw new Error('No images to upload')
+      // Add images from all colors (including color representation images)
+      let imageIndex = 0
+      console.log('=== FORM SUBMISSION DEBUG ===')
+      console.log('Processing colors for image upload:', validColors)
+      console.log('Form data colors:', formData.colors)
+      console.log('Product data being sent:', productData)
+      
+      for (const color of validColors) {
+        console.log(`Processing color: ${color.name}`)
+        console.log('Color image:', color.colorImage)
+        console.log('Color product images:', color.images)
+        
+        // Add color representation image first
+        if (color.colorImage && color.colorImage.file) {
+          console.log('Adding color representation image for:', color.name)
+          formDataToSend.append(`images`, color.colorImage.file)
+          formDataToSend.append(`imageData[${imageIndex}]`, JSON.stringify({
+            alt: color.colorImage.alt || `${color.name} color representation`,
+            isPrimary: false,
+            color: color.name,
+            isColorRepresentation: true
+          }))
+          imageIndex++
+        }
+        
+        // Add product images for this color
+        const colorImages = color.images.filter(img => img.file)
+        console.log(`Found ${colorImages.length} product images for color: ${color.name}`)
+        
+        for (const img of colorImages) {
+          if (img.file) {
+            // Skip if this image is the same as the color representation image
+            if (color.colorImage && color.colorImage.file && 
+                img.file.name === color.colorImage.file.name && 
+                img.file.size === color.colorImage.file.size) {
+              console.log('Skipping duplicate image:', img.alt)
+              continue
+            }
+            
+            console.log('Adding product image for:', color.name)
+            formDataToSend.append(`images`, img.file)
+            formDataToSend.append(`imageData[${imageIndex}]`, JSON.stringify({
+              alt: img.alt || `${color.name} product image`,
+              isPrimary: img.isPrimary,
+              color: color.name,
+              isColorRepresentation: false
+            }))
+            imageIndex++
+          }
+        }
       }
       
-      imageData.forEach((img, index) => {
-        if (img.file) {
-          formDataToSend.append(`images`, img.file)
-          formDataToSend.append(`imageData[${index}]`, JSON.stringify({
-            alt: img.alt,
-            isPrimary: img.isPrimary
-          }))
-        }
-      })
+      console.log(`Total images to upload: ${imageIndex}`)
+      console.log('FormData contents:')
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`${key}:`, value)
+      }
+      
+      if (imageIndex === 0) {
+        throw new Error('No images to upload')
+      }
 
       // Send everything to the upload endpoint
       const response = await fetch('http://localhost:5001/api/products/upload', {
@@ -324,14 +466,35 @@ const AdminNewProductClient = () => {
       })
 
       if (response.ok) {
+        const result = await response.json()
+        console.log('Product created successfully:', result)
         router.push('/admin/products')
       } else {
         const data = await response.json()
+        console.error('Error response:', data)
+        console.error('Response status:', response.status)
         setErrors(data.errors || { message: 'Failed to create product' })
       }
     } catch (error) {
       console.error('Error creating product:', error)
-      setErrors({ message: error instanceof Error ? error.message : 'An error occurred while creating the product' })
+      console.error('Error details:', error)
+      
+      let errorMessage = 'An error occurred while creating the product'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null) {
+        // Try to extract error message from response
+        if ('message' in error) {
+          errorMessage = String(error.message)
+        } else if ('error' in error) {
+          errorMessage = String(error.error)
+        }
+      }
+      
+      setErrors({ 
+        message: errorMessage
+      })
     } finally {
       setLoading(false)
     }
@@ -448,6 +611,7 @@ const AdminNewProductClient = () => {
               </div>
               <p className="text-gray-500 text-xs mt-1">Leave empty if not on sale</p>
             </div>
+            
           </div>
           
           <div className="mt-6">
@@ -471,106 +635,172 @@ const AdminNewProductClient = () => {
           </div>
         </div>
 
-        {/* Image Upload */}
+        {/* Color-First Image Management */}
         <div className="bg-white p-6 border border-gray-200 rounded-lg">
           <h2 className="text-xl font-medium text-black mb-6 flex items-center gap-2">
             <ImageIcon className="w-5 h-5" />
-            Product Images
+            Product Images by Color
           </h2>
           
-          {errors.images && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-600 text-sm flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.images}
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {formData.images.map((image, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-4">
-                  {/* Image Preview */}
-                  <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 relative">
-                    {image.preview ? (
-                      <img
-                        src={image.preview}
-                        alt="Preview"
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="text-center text-gray-500">
-                        <Upload className="w-8 h-8 mx-auto mb-2" />
-                        <span className="text-xs">No Image</span>
-                      </div>
-                    )}
-                    
-                    {/* Primary Badge */}
-                    {image.isPrimary && (
-                      <div className="absolute -top-2 -right-2 bg-black text-white text-xs px-2 py-1 rounded-full">
-                        Primary
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Image Controls */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            handleImageUpload(index, file)
-                          }
-                        }}
-                        className="flex-1 border border-gray-300 px-3 py-2 rounded-md text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPrimaryImage(index)}
-                        disabled={image.isPrimary}
-                        className={`px-3 py-2 text-sm rounded-md transition-colors ${
-                          image.isPrimary
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Set Primary
-                      </button>
-                      {formData.images.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleImageRemove(index)}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    
-                    <input
-                      type="text"
-                      placeholder="Alt text for accessibility"
-                      value={image.alt}
-                      onChange={(e) => handleArrayFieldChange('images', index, { ...image, alt: e.target.value })}
-                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md transition-all"
+          <div className="space-y-6">
+            {/* Color Tabs */}
+            <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+              {formData.colors.map((color, colorIndex) => (
+                <button
+                  key={colorIndex}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, currentColorIndex: colorIndex }))}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    formData.currentColorIndex === colorIndex
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {color.colorImage?.preview ? (
+                    <img
+                      src={color.colorImage.preview}
+                      alt={color.name || `Color ${colorIndex + 1}`}
+                      className="w-6 h-6 rounded object-cover"
                     />
-                  </div>
+                  ) : (
+                    <div 
+                      className="w-6 h-6 rounded border border-gray-300 bg-gray-200 flex items-center justify-center"
+                      title={color.name || `Color ${colorIndex + 1}`}
+                    >
+                      <span className="text-xs text-gray-500">?</span>
+                    </div>
+                  )}
+                  {color.name || `Color ${colorIndex + 1}`}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => addArrayItem('colors')}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Add Color
+              </button>
+            </div>
+
+            {/* Current Color Images */}
+            {formData.colors[formData.currentColorIndex] && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium text-black mb-2">
+                    Images for {formData.colors[formData.currentColorIndex].name || `Color ${formData.currentColorIndex + 1}`}
+                  </h3>
+                  {errors[`color_${formData.currentColorIndex}_images`] && (
+                    <p className="text-red-600 text-sm flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors[`color_${formData.currentColorIndex}_images`]}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {formData.colors[formData.currentColorIndex].images.map((image, imageIndex) => (
+                    <div key={`${formData.currentColorIndex}-${imageIndex}-${image.alt || 'empty'}`} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start gap-4">
+                        {/* Image Preview */}
+                        <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 relative">
+                          {image.preview ? (
+                            <img
+                              src={image.preview}
+                              alt="Preview"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="text-center text-gray-500">
+                              <Upload className="w-8 h-8 mx-auto mb-2" />
+                              <span className="text-xs">No Image</span>
+                            </div>
+                          )}
+                          
+                          {/* Primary Badge */}
+                          {image.isPrimary && (
+                            <div className="absolute -top-2 -right-2 bg-black text-white text-xs px-2 py-1 rounded-full">
+                              Primary
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Image Controls */}
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <input
+                              key={`product-image-${formData.currentColorIndex}-${imageIndex}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  handleColorImageUpload(formData.currentColorIndex, imageIndex, file)
+                                  // Reset the input
+                                  e.target.value = ''
+                                }
+                              }}
+                              className="flex-1 border border-gray-300 px-3 py-2 rounded-md text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setPrimaryColorImage(formData.currentColorIndex, imageIndex)}
+                              disabled={image.isPrimary}
+                              className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                                image.isPrimary
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              Set Primary
+                            </button>
+                            {formData.colors[formData.currentColorIndex].images.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeColorImage(formData.currentColorIndex, imageIndex)}
+                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                          
+                          <input
+                            type="text"
+                            placeholder="Alt text for accessibility"
+                            value={image.alt}
+                            onChange={(e) => {
+                              setFormData(prev => {
+                                const newColors = [...prev.colors]
+                                newColors[formData.currentColorIndex].images[imageIndex] = {
+                                  ...newColors[formData.currentColorIndex].images[imageIndex],
+                                  alt: e.target.value
+                                }
+                                return { ...prev, colors: newColors }
+                              })
+                            }}
+                            className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      addColorImage(formData.currentColorIndex)
+                    }}
+                    className="flex items-center gap-2 text-black hover:text-gray-700 transition-colors border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Another Image
+                  </button>
                 </div>
               </div>
-            ))}
-            
-            <button
-              type="button"
-              onClick={() => addArrayItem('images')}
-              className="flex items-center gap-2 text-black hover:text-gray-700 transition-colors border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
-            >
-              <Plus className="w-4 h-4" />
-              Add Another Image
-            </button>
+            )}
           </div>
         </div>
 
@@ -615,50 +845,86 @@ const AdminNewProductClient = () => {
             {/* Colors */}
             <div>
               <label className="block text-sm font-medium text-black mb-3">Colors</label>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {formData.colors.map((color, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-md">
-                    <input
-                      type="text"
-                      placeholder="Color name (e.g., Navy Blue)"
-                      value={color.name}
-                      onChange={(e) => handleArrayFieldChange('colors', index, { ...color, name: e.target.value })}
-                      className="flex-1 border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md"
-                    />
-                    <input
-                      type="color"
-                      value={color.hex}
-                      onChange={(e) => handleArrayFieldChange('colors', index, { ...color, hex: e.target.value })}
-                      className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer"
-                    />
-                    <label className="flex items-center gap-2">
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 mb-3">
                       <input
-                        type="checkbox"
-                        checked={color.inStock}
-                        onChange={(e) => handleArrayFieldChange('colors', index, { ...color, inStock: e.target.checked })}
-                        className="w-4 h-4"
+                        type="text"
+                        placeholder="Color name (e.g., Navy Blue)"
+                        value={color.name}
+                        onChange={(e) => handleArrayFieldChange('colors', index, { ...color, name: e.target.value })}
+                        className="flex-1 border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md"
                       />
-                      <span className="text-sm text-gray-600">In Stock</span>
-                    </label>
-                    {formData.colors.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayItem('colors', index)}
-                        className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded-md transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={color.inStock}
+                          onChange={(e) => handleArrayFieldChange('colors', index, { ...color, inStock: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-gray-600">In Stock</span>
+                      </label>
+                      {formData.colors.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeArrayItem('colors', index)}
+                          className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Color Representation Image */}
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Color Representation Image (Thumbnail for Color Selection) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 relative overflow-hidden">
+                          {color.colorImage?.preview ? (
+                            <img
+                              src={color.colorImage.preview}
+                              alt="Color representation"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-center text-gray-500">
+                              <Upload className="w-6 h-6 mx-auto mb-1" />
+                              <span className="text-xs">No Image</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <input
+                            key={`color-representation-${index}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                handleColorRepresentationUpload(index, file)
+                                // Reset the input
+                                e.target.value = ''
+                              }
+                            }}
+                            className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            This image will be used as the color thumbnail in the product detail page
+                          </p>
+                        </div>
+                      </div>
+                      {errors[`color_${index}_representation`] && (
+                        <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />
+                          {errors[`color_${index}_representation`]}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => addArrayItem('colors')}
-                  className="flex items-center gap-2 text-black hover:text-gray-700 transition-colors border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Color
-                </button>
               </div>
               {errors.colors && (
                 <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
@@ -667,6 +933,7 @@ const AdminNewProductClient = () => {
                 </p>
               )}
             </div>
+
           </div>
         </div>
 
@@ -686,17 +953,9 @@ const AdminNewProductClient = () => {
                 </thead>
                 <tbody>
                   {formData.inventory.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-100">
+                    <tr key={`${item.size}-${item.color}`} className="border-b border-gray-100">
                       <td className="py-3 px-4 font-medium">{item.size}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-4 h-4 rounded-full border border-gray-300"
-                            style={{ backgroundColor: formData.colors.find(c => c.name === item.color)?.hex }}
-                          />
-                          {item.color}
-                        </div>
-                      </td>
+                      <td className="py-3 px-4 text-gray-600">{item.color}</td>
                       <td className="py-3 px-4">
                         <input
                           type="number"
@@ -722,7 +981,7 @@ const AdminNewProductClient = () => {
             </div>
             <p className="text-gray-500 text-sm mt-3">
               <CheckCircle className="w-4 h-4 inline mr-1" />
-              Inventory is automatically calculated based on your selected sizes and colors
+              Inventory is automatically calculated based on your selected sizes
             </p>
           </div>
         )}

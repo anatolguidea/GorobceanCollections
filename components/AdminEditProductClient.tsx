@@ -15,6 +15,22 @@ import {
   CheckCircle
 } from 'lucide-react'
 
+interface ColorImageData {
+  url?: string
+  alt: string
+  isPrimary: boolean
+  file?: File | null
+  preview?: string
+  publicId?: string
+}
+
+interface ColorData {
+  name: string
+  colorImage: ColorImageData | null // Thumbnail image for color selection (required)
+  inStock: boolean
+  images: ColorImageData[] // Product images for this color
+}
+
 interface ProductFormData {
   name: string
   description: string
@@ -23,7 +39,7 @@ interface ProductFormData {
   category: string
   subcategory: string
   sizes: string[]
-  colors: Array<{ name: string; hex: string; inStock: boolean }>
+  colors: ColorData[]
   inventory: Array<{ size: string; color: string; quantity: string; reserved: string }>
   tags: string[]
   features: string[]
@@ -34,14 +50,7 @@ interface ProductFormData {
   isFeatured: boolean
   isActive: boolean
   salePercentage: number
-  images: Array<{ 
-    url?: string; 
-    alt: string; 
-    isPrimary: boolean; 
-    file?: File | null; 
-    preview?: string;
-    publicId?: string;
-  }>
+  currentColorIndex: number
 }
 
 interface AdminEditProductClientProps {
@@ -59,7 +68,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
     category: '',
     subcategory: '',
     sizes: [],
-    colors: [{ name: '', hex: '#000000', inStock: true }],
+    colors: [{ name: 'White', colorImage: null, inStock: true, images: [] }],
     inventory: [],
     tags: [],
     features: [''],
@@ -70,7 +79,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
     isFeatured: false,
     isActive: true,
     salePercentage: 0,
-    images: [{ url: '', alt: '', isPrimary: true, file: null, preview: '' }]
+    currentColorIndex: 0
   })
 
   const [loading, setLoading] = useState(true)
@@ -86,28 +95,23 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
     'XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38', '40'
   ]
 
-  // Update inventory when sizes or colors change
+  // Update inventory when sizes change
   useEffect(() => {
-    const newInventory: Array<{ size: string; color: string; quantity: string; reserved: string }> = []
+    const newInventory: Array<{ size: string; quantity: string; reserved: string }> = []
     
     formData.sizes.forEach(size => {
-      formData.colors.forEach(color => {
-        if (color.name.trim()) {
-          const existing = formData.inventory.find(
-            item => item.size === size && item.color === color.name
-          )
-          newInventory.push({
-            size,
-            color: color.name,
-            quantity: existing?.quantity || '',
-            reserved: existing?.reserved || ''
-          })
-        }
+      const existing = formData.inventory.find(
+        item => item.size === size
+      )
+      newInventory.push({
+        size,
+        quantity: existing?.quantity || '',
+        reserved: existing?.reserved || ''
       })
     })
     
     setFormData(prev => ({ ...prev, inventory: newInventory }))
-  }, [formData.sizes, formData.colors])
+  }, [formData.sizes])
 
   useEffect(() => {
     if (productId) {
@@ -122,6 +126,42 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
         const data = await response.json()
         const product = data.data
         
+        // Process colors and images with improved color-specific image handling
+        const colorsArray = product.colors && product.colors.length > 0 
+          ? product.colors.map((color: any) => {
+              // Get color representation image
+              const colorRepresentationImage = product.images?.find((img: any) => 
+                img.color === color.name && img.isColorRepresentation === true
+              )
+              
+              // Get product images for this color (excluding color representation)
+              const colorImages = product.images?.filter((img: any) => 
+                img.color === color.name && img.isColorRepresentation !== true
+              ).map((img: any) => ({
+                url: img.url,
+                alt: img.alt || '',
+                isPrimary: img.isPrimary || false,
+                file: null,
+                preview: img.url,
+                publicId: img.publicId
+              })) || []
+              
+              return {
+                name: color.name || '',
+                inStock: color.inStock !== undefined ? color.inStock : true,
+                colorImage: colorRepresentationImage ? {
+                  url: colorRepresentationImage.url,
+                  alt: colorRepresentationImage.alt || '',
+                  isPrimary: false,
+                  file: null,
+                  preview: colorRepresentationImage.url,
+                  publicId: colorRepresentationImage.publicId
+                } : null,
+                images: colorImages
+              }
+            })
+          : [{ name: 'White', colorImage: null, inStock: true, images: [] }]
+
         setFormData({
           name: product.name || '',
           description: product.description || '',
@@ -130,9 +170,10 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
           category: product.category || '',
           subcategory: product.subcategory || '',
           sizes: product.sizes || [],
-          colors: product.colors?.length > 0 ? product.colors : [{ name: '', hex: '#000000', inStock: true }],
+          colors: colorsArray,
           inventory: product.inventory?.map((item: any) => ({
-            ...item,
+            size: item.size,
+            color: item.color || '',
             quantity: item.quantity?.toString() || '',
             reserved: item.reserved?.toString() || ''
           })) || [],
@@ -145,14 +186,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
           isFeatured: product.isFeatured || false,
           isActive: product.isActive !== undefined ? product.isActive : true,
           salePercentage: product.salePercentage || 0,
-          images: product.images?.length > 0 ? product.images.map((img: any) => ({
-            url: img.url,
-            alt: img.alt || '',
-            isPrimary: img.isPrimary || false,
-            file: null,
-            preview: img.url,
-            publicId: img.publicId
-          })) : [{ url: '', alt: '', isPrimary: true, file: null, preview: '' }]
+          currentColorIndex: 0
         })
       } else {
         setErrors({ message: 'Failed to fetch product' })
@@ -187,12 +221,104 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
       if (field === 'features' || field === 'care' || field === 'materials') {
         newArray.push('')
       } else if (field === 'colors') {
-        newArray.push({ name: '', hex: '#000000', inStock: true })
-      } else if (field === 'images') {
-        newArray.push({ url: '', alt: '', isPrimary: false, file: null, preview: '' })
+        newArray.push({ name: '', colorImage: null, inStock: true, images: [{ url: '', alt: '', isPrimary: true, file: null, preview: '' }] })
       }
       return { ...prev, [field]: newArray }
     })
+  }
+
+  const addColorImage = (colorIndex: number) => {
+    setFormData(prev => {
+      const newColors = [...prev.colors]
+      newColors[colorIndex].images.push({ url: '', alt: '', isPrimary: false, file: null, preview: '' })
+      return { ...prev, colors: newColors }
+    })
+  }
+
+  const removeColorImage = (colorIndex: number, imageIndex: number) => {
+    setFormData(prev => {
+      const newColors = [...prev.colors]
+      const colorImages = [...newColors[colorIndex].images]
+      
+      // Check if we're removing the primary image
+      const isRemovingPrimary = colorImages[imageIndex]?.isPrimary
+      
+      // Remove the image
+      colorImages.splice(imageIndex, 1)
+      
+      // If we removed the primary image and there are still images left, make the first one primary
+      if (isRemovingPrimary && colorImages.length > 0) {
+        colorImages[0].isPrimary = true
+      }
+      
+      // Update the color with the new images array
+      newColors[colorIndex] = {
+        ...newColors[colorIndex],
+        images: colorImages
+      }
+      
+      return { ...prev, colors: newColors }
+    })
+  }
+
+  const setPrimaryColorImage = (colorIndex: number, imageIndex: number) => {
+    setFormData(prev => {
+      const newColors = [...prev.colors]
+      const colorImages = [...newColors[colorIndex].images]
+      
+      // Update all images to set the correct one as primary
+      const updatedImages = colorImages.map((img, i) => ({
+        ...img,
+        isPrimary: i === imageIndex
+      }))
+      
+      newColors[colorIndex] = {
+        ...newColors[colorIndex],
+        images: updatedImages
+      }
+      
+      return { ...prev, colors: newColors }
+    })
+  }
+
+  const handleColorImageUpload = (colorIndex: number, imageIndex: number, file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const preview = e.target?.result as string
+      setFormData(prev => {
+        const newColors = [...prev.colors]
+        newColors[colorIndex].images[imageIndex] = {
+          ...newColors[colorIndex].images[imageIndex],
+          file,
+          preview
+        }
+        return { ...prev, colors: newColors }
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleColorRepresentationUpload = (colorIndex: number, file: File) => {
+    if (!file) return
+    
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const preview = e.target?.result as string
+      setFormData(prev => {
+        const newColors = [...prev.colors]
+        newColors[colorIndex] = {
+          ...newColors[colorIndex],
+          colorImage: {
+            file,
+            alt: `${newColors[colorIndex].name || 'Color'} color representation`,
+            isPrimary: false,
+            preview
+          }
+        }
+        return { ...prev, colors: newColors }
+      })
+    }
+    reader.readAsDataURL(file)
   }
 
   const removeArrayItem = (field: keyof ProductFormData, index: number) => {
@@ -201,42 +327,6 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
       newArray.splice(index, 1)
       return { ...prev, [field]: newArray }
     })
-  }
-
-  const handleImageUpload = (index: number, file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const preview = e.target?.result as string
-      handleArrayFieldChange('images', index, { 
-        ...formData.images[index], 
-        file, 
-        preview 
-      })
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleImageRemove = (index: number) => {
-    if (formData.images[index].isPrimary && formData.images.length > 1) {
-      // If removing primary image, make the first remaining image primary
-      const newImages = formData.images.filter((_, i) => i !== index)
-      if (newImages.length > 0) {
-        newImages[0].isPrimary = true
-      }
-      setFormData(prev => ({ ...prev, images: newImages }))
-    } else {
-      removeArrayItem('images', index)
-    }
-  }
-
-  const setPrimaryImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.map((img, i) => ({
-        ...img,
-        isPrimary: i === index
-      }))
-    }))
   }
 
   const handleInventoryChange = (size: string, color: string, field: 'quantity' | 'reserved', value: string) => {
@@ -258,9 +348,22 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
     if (!formData.price || parseFloat(formData.price) <= 0) newErrors.price = 'Valid price is required'
     if (!formData.category) newErrors.category = 'Category is required'
     if (formData.sizes.length === 0) newErrors.sizes = 'At least one size is required'
-    if (formData.colors.some(c => !c.name.trim())) newErrors.colors = 'All colors must have names'
-    if (formData.images.length === 0) {
-      newErrors.images = 'At least one image is required'
+    
+    // Check if colors have names and at least some images
+    const validColors = formData.colors.filter(c => c.name.trim())
+    if (validColors.length === 0) {
+      newErrors.colors = 'At least one color with a name is required'
+    } else {
+      for (let i = 0; i < validColors.length; i++) {
+        const color = validColors[i]
+        // Color representation image is required
+        if (!color.colorImage?.file && !color.colorImage?.url) {
+          newErrors[`color_${i}_representation`] = 'Color representation image is required'
+        }
+        if (!color.images.some(img => img.file || img.url)) {
+          newErrors[`color_${i}_images`] = 'At least one product image is required for this color'
+        }
+      }
     }
     
     setErrors(newErrors)
@@ -282,69 +385,153 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
         return
       }
 
-      // Handle new image uploads if any
-      const newImages = formData.images.filter(img => img.file)
-      let uploadedImages = formData.images.filter(img => img.url) // Existing images
-
-      if (newImages.length > 0) {
-        const formDataToSend = new FormData()
-        newImages.forEach((img, index) => {
-          if (img.file) {
-            formDataToSend.append(`images`, img.file)
-            formDataToSend.append(`imageData[${index}]`, JSON.stringify({
-              alt: img.alt,
-              isPrimary: img.isPrimary
-            }))
-          }
-        })
-
-        // Upload new images
-        const uploadResponse = await fetch('http://localhost:5001/api/products/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formDataToSend
-        })
-
-        if (!uploadResponse.ok) {
-          const uploadError = await uploadResponse.json()
-          throw new Error(uploadError.message || 'Failed to upload images')
-        }
-
-        const uploadResult = await uploadResponse.json()
-        uploadedImages = [...uploadedImages, ...uploadResult.data.images]
-      }
-
-      // Update the product
+      // Prepare product data with proper color structure
+      const validColors = formData.colors.filter(c => c.name.trim())
       const productData = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
         price: parseFloat(formData.price),
         originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
-        images: uploadedImages,
+        category: formData.category,
+        subcategory: formData.subcategory,
+        sizes: formData.sizes,
+        colors: validColors.map(color => ({
+          name: color.name,
+          inStock: color.inStock
+        })),
         inventory: formData.inventory
           .filter(item => item.quantity && parseFloat(item.quantity) > 0)
           .map(item => ({
             ...item,
             quantity: parseFloat(item.quantity) || 0,
             reserved: parseFloat(item.reserved) || 0
-          }))
+          })),
+        tags: formData.tags,
+        features: formData.features.filter(f => f.trim()),
+        care: formData.care.filter(c => c.trim()),
+        materials: formData.materials,
+        isNewArrival: formData.isNewArrival,
+        isSale: formData.isSale,
+        isFeatured: formData.isFeatured,
+        isActive: formData.isActive,
+        salePercentage: formData.salePercentage
       }
 
-      const response = await fetch(`http://localhost:5001/api/products/${productId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(productData)
-      })
+      // Check if there are any new images to upload
+      const hasNewImages = validColors.some(color => 
+        color.colorImage?.file || color.images.some(img => img.file)
+      )
 
-      if (response.ok) {
-        router.push('/admin/products')
+      if (hasNewImages) {
+        // Create FormData for image uploads
+        const formDataToSend = new FormData()
+        
+        // Add product data as individual fields
+        formDataToSend.append('name', productData.name)
+        formDataToSend.append('description', productData.description)
+        formDataToSend.append('price', productData.price.toString())
+        if (productData.originalPrice) {
+          formDataToSend.append('originalPrice', productData.originalPrice.toString())
+        }
+        formDataToSend.append('category', productData.category)
+        if (productData.subcategory) {
+          formDataToSend.append('subcategory', productData.subcategory)
+        }
+        formDataToSend.append('sizes', JSON.stringify(productData.sizes))
+        formDataToSend.append('colors', JSON.stringify(productData.colors))
+        formDataToSend.append('inventory', JSON.stringify(productData.inventory))
+        formDataToSend.append('tags', JSON.stringify(productData.tags))
+        formDataToSend.append('features', JSON.stringify(productData.features))
+        formDataToSend.append('care', JSON.stringify(productData.care))
+        formDataToSend.append('materials', JSON.stringify(productData.materials))
+        formDataToSend.append('isNewArrival', productData.isNewArrival.toString())
+        formDataToSend.append('isSale', productData.isSale.toString())
+        formDataToSend.append('isFeatured', productData.isFeatured.toString())
+        formDataToSend.append('isActive', productData.isActive.toString())
+        if (productData.salePercentage !== undefined) {
+          formDataToSend.append('salePercentage', productData.salePercentage.toString())
+        }
+        
+        // Add images from all colors
+        let imageIndex = 0
+        console.log('=== EDIT FORM SUBMISSION DEBUG ===')
+        console.log('Processing colors for image upload:', validColors)
+        
+        for (const color of validColors) {
+          console.log(`Processing color: ${color.name}`)
+          console.log('Color image:', color.colorImage)
+          console.log('Color product images:', color.images)
+          
+          // Add color representation image first
+          if (color.colorImage && color.colorImage.file) {
+            console.log('Adding color representation image for:', color.name)
+            formDataToSend.append(`images`, color.colorImage.file)
+            formDataToSend.append(`imageData[${imageIndex}]`, JSON.stringify({
+              alt: color.colorImage.alt || `${color.name} color representation`,
+              isPrimary: false,
+              color: color.name,
+              isColorRepresentation: true
+            }))
+            imageIndex++
+          }
+          
+          // Add product images for this color
+          const colorImages = color.images.filter(img => img.file)
+          console.log(`Found ${colorImages.length} product images for color: ${color.name}`)
+          
+          for (const img of colorImages) {
+            if (img.file) {
+              console.log('Adding product image for:', color.name)
+              formDataToSend.append(`images`, img.file)
+              formDataToSend.append(`imageData[${imageIndex}]`, JSON.stringify({
+                alt: img.alt || `${color.name} product image`,
+                isPrimary: img.isPrimary,
+                color: color.name,
+                isColorRepresentation: false
+              }))
+              imageIndex++
+            }
+          }
+        }
+        
+        console.log(`Total images to upload: ${imageIndex}`)
+        console.log('FormData contents:')
+        for (let [key, value] of formDataToSend.entries()) {
+          console.log(`${key}:`, value)
+        }
+
+        // Use the update with images endpoint
+        const response = await fetch(`http://localhost:5001/api/products/${productId}/with-images`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formDataToSend
+        })
+
+        if (response.ok) {
+          router.push('/admin/products')
+        } else {
+          const data = await response.json()
+          setErrors(data.errors || { message: 'Failed to update product' })
+        }
       } else {
-        const data = await response.json()
-        setErrors(data.errors || { message: 'Failed to update product' })
+        // No new images, just update the product data
+        const response = await fetch(`http://localhost:5001/api/products/${productId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(productData)
+        })
+
+        if (response.ok) {
+          router.push('/admin/products')
+        } else {
+          const data = await response.json()
+          setErrors(data.errors || { message: 'Failed to update product' })
+        }
       }
     } catch (error) {
       console.error('Error updating product:', error)
@@ -473,6 +660,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
               </div>
               <p className="text-gray-500 text-xs mt-1">Leave empty if not on sale</p>
             </div>
+            
           </div>
           
           <div className="mt-6">
@@ -496,106 +684,159 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
           </div>
         </div>
 
-        {/* Image Management */}
+        {/* Color-First Image Management */}
         <div className="bg-white p-6 border border-gray-200 rounded-lg">
           <h2 className="text-xl font-medium text-black mb-6 flex items-center gap-2">
             <ImageIcon className="w-5 h-5" />
-            Product Images
+            Product Images by Color
           </h2>
           
-          {errors.images && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-600 text-sm flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.images}
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {formData.images.map((image, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start gap-4">
-                  {/* Image Preview */}
-                  <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 relative">
-                    {image.preview ? (
-                      <img
-                        src={image.preview}
-                        alt="Preview"
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="text-center text-gray-500">
-                        <Upload className="w-8 h-8 mx-auto mb-2" />
-                        <span className="text-xs">No Image</span>
-                      </div>
-                    )}
-                    
-                    {/* Primary Badge */}
-                    {image.isPrimary && (
-                      <div className="absolute -top-2 -right-2 bg-black text-white text-xs px-2 py-1 rounded-full">
-                        Primary
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Image Controls */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            handleImageUpload(index, file)
-                          }
-                        }}
-                        className="flex-1 border border-gray-300 px-3 py-2 rounded-md text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPrimaryImage(index)}
-                        disabled={image.isPrimary}
-                        className={`px-3 py-2 text-sm rounded-md transition-colors ${
-                          image.isPrimary
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Set Primary
-                      </button>
-                      {formData.images.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleImageRemove(index)}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    
-                    <input
-                      type="text"
-                      placeholder="Alt text for accessibility"
-                      value={image.alt}
-                      onChange={(e) => handleArrayFieldChange('images', index, { ...image, alt: e.target.value })}
-                      className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md transition-all"
+          <div className="space-y-6">
+            {/* Color Tabs */}
+            <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+              {formData.colors.map((color, colorIndex) => (
+                <button
+                  key={colorIndex}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, currentColorIndex: colorIndex }))}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    formData.currentColorIndex === colorIndex
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {color.colorImage?.preview ? (
+                    <img
+                      src={color.colorImage.preview}
+                      alt={color.name || `Color ${colorIndex + 1}`}
+                      className="w-6 h-6 rounded object-cover"
                     />
-                  </div>
+                  ) : (
+                    <div className="w-6 h-6 rounded bg-gray-300 flex items-center justify-center">
+                      <span className="text-xs">?</span>
+                    </div>
+                  )}
+                  {color.name || `Color ${colorIndex + 1}`}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => addArrayItem('colors')}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Add Color
+              </button>
+            </div>
+
+            {/* Current Color Images */}
+            {formData.colors[formData.currentColorIndex] && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium text-black mb-2">
+                    Images for {formData.colors[formData.currentColorIndex].name || `Color ${formData.currentColorIndex + 1}`}
+                  </h3>
+                </div>
+
+                <div className="space-y-4">
+                  {formData.colors[formData.currentColorIndex].images.map((image, imageIndex) => (
+                    <div key={imageIndex} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start gap-4">
+                        {/* Image Preview */}
+                        <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 relative">
+                          {image.preview ? (
+                            <img
+                              src={image.preview}
+                              alt="Preview"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="text-center text-gray-500">
+                              <Upload className="w-8 h-8 mx-auto mb-2" />
+                              <span className="text-xs">No Image</span>
+                            </div>
+                          )}
+                          
+                          {/* Primary Badge */}
+                          {image.isPrimary && (
+                            <div className="absolute -top-2 -right-2 bg-black text-white text-xs px-2 py-1 rounded-full">
+                              Primary
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Image Controls */}
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <input
+                              key={`product-image-${formData.currentColorIndex}-${imageIndex}`}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  handleColorImageUpload(formData.currentColorIndex, imageIndex, file)
+                                  // Reset the input
+                                  e.target.value = ''
+                                }
+                              }}
+                              className="flex-1 border border-gray-300 px-3 py-2 rounded-md text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setPrimaryColorImage(formData.currentColorIndex, imageIndex)}
+                              disabled={image.isPrimary}
+                              className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                                image.isPrimary
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              Set Primary
+                            </button>
+                            {formData.colors[formData.currentColorIndex].images.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeColorImage(formData.currentColorIndex, imageIndex)}
+                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                          
+                          <input
+                            type="text"
+                            placeholder="Alt text for accessibility"
+                            value={image.alt}
+                            onChange={(e) => {
+                              setFormData(prev => {
+                                const newColors = [...prev.colors]
+                                newColors[formData.currentColorIndex].images[imageIndex] = {
+                                  ...newColors[formData.currentColorIndex].images[imageIndex],
+                                  alt: e.target.value
+                                }
+                                return { ...prev, colors: newColors }
+                              })
+                            }}
+                            className="w-full border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <button
+                    type="button"
+                    onClick={() => addColorImage(formData.currentColorIndex)}
+                    className="flex items-center gap-2 text-black hover:text-gray-700 transition-colors border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Another Image
+                  </button>
                 </div>
               </div>
-            ))}
-            
-            <button
-              type="button"
-              onClick={() => addArrayItem('images')}
-              className="flex items-center gap-2 text-black hover:text-gray-700 transition-colors border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
-            >
-              <Plus className="w-4 h-4" />
-              Add Another Image
-            </button>
+            )}
           </div>
         </div>
 
@@ -640,40 +881,78 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
             {/* Colors */}
             <div>
               <label className="block text-sm font-medium text-black mb-3">Colors</label>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {formData.colors.map((color, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 border border-gray-200 rounded-md">
-                    <input
-                      type="text"
-                      placeholder="Color name (e.g., Navy Blue)"
-                      value={color.name}
-                      onChange={(e) => handleArrayFieldChange('colors', index, { ...color, name: e.target.value })}
-                      className="flex-1 border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md"
-                    />
-                    <input
-                      type="color"
-                      value={color.hex}
-                      onChange={(e) => handleArrayFieldChange('colors', index, { ...color, hex: e.target.value })}
-                      className="w-12 h-10 border border-gray-300 rounded-md cursor-pointer"
-                    />
-                    <label className="flex items-center gap-2">
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 mb-3">
                       <input
-                        type="checkbox"
-                        checked={color.inStock}
-                        onChange={(e) => handleArrayFieldChange('colors', index, { ...color, inStock: e.target.checked })}
-                        className="w-4 h-4"
+                        type="text"
+                        placeholder="Color name (e.g., Navy Blue)"
+                        value={color.name}
+                        onChange={(e) => handleArrayFieldChange('colors', index, { ...color, name: e.target.value })}
+                        className="flex-1 border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent rounded-md"
                       />
-                      <span className="text-sm text-gray-600">In Stock</span>
-                    </label>
-                    {formData.colors.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayItem('colors', index)}
-                        className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded-md transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={color.inStock}
+                          onChange={(e) => handleArrayFieldChange('colors', index, { ...color, inStock: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-gray-600">In Stock</span>
+                      </label>
+                      {formData.colors.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeArrayItem('colors', index)}
+                          className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Color Representation Image */}
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Color Representation Image <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 relative overflow-hidden">
+                          {color.colorImage?.preview ? (
+                            <img
+                              src={color.colorImage.preview}
+                              alt="Color representation"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-center text-gray-500">
+                              <Upload className="w-6 h-6 mx-auto mb-1" />
+                              <span className="text-xs">No Image</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <input
+                            key={`color-representation-${index}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                handleColorRepresentationUpload(index, file)
+                                // Reset the input
+                                e.target.value = ''
+                              }
+                            }}
+                            className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Upload an image that shows the product in this color
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
                 <button
@@ -711,7 +990,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
                 </thead>
                 <tbody>
                   {formData.inventory.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-100">
+                    <tr key={`${item.size}-${item.color}`} className="border-b border-gray-100">
                       <td className="py-3 px-4 font-medium">{item.size}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">

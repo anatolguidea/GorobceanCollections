@@ -41,6 +41,22 @@ const upload = multer({
   }
 });
 
+// Configure multer to accept any field names (for imageData fields)
+const uploadAny = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Check file type
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
 // Get all products with filtering and pagination
 router.get('/', cacheConfigs.products, async (req, res) => {
   try {
@@ -226,7 +242,7 @@ router.get('/featured/featured', cacheConfigs.featuredProducts, async (req, res)
 // Create new product with file uploads (Admin only)
 router.post('/upload', [
   auth,
-  upload.array('images', 5), // Allow up to 5 images
+  uploadAny.any() // Accept any field names for images and imageData
 ], async (req, res) => {
   try {
     // Check if user is admin
@@ -246,7 +262,7 @@ router.post('/upload', [
       category: req.body.category,
       subcategory: req.body.subcategory,
       sizes: [],
-      colors: [],
+      colors: [], // Color variants array
       inventory: [],
       tags: [],
       features: [],
@@ -277,9 +293,12 @@ router.post('/upload', [
     }
     
     // Debug logging
+    console.log('=== UPLOAD DEBUG START ===');
     console.log('Upload endpoint - Files received:', req.files?.length || 0);
     console.log('Upload endpoint - Body keys:', Object.keys(req.body));
     console.log('Upload endpoint - Product data:', productData);
+    console.log('Upload endpoint - All body data:', req.body);
+    console.log('=== UPLOAD DEBUG END ===');
     
     // Validate required fields
     if (!productData.name || !productData.description || !productData.price || !productData.category) {
@@ -291,15 +310,34 @@ router.post('/upload', [
 
     // Process uploaded images with Cloudinary
     const images = [];
+    const processedColors = new Map(); // Track processed colors for colorImage assignment
+    
     if (req.files && req.files.length > 0) {
       try {
+        // Filter out only the actual image files (not imageData fields)
+        const imageFiles = req.files.filter(file => file.fieldname === 'images');
+        
         // Upload each image to Cloudinary
-        for (let index = 0; index < req.files.length; index++) {
-          const file = req.files[index];
+        for (let index = 0; index < imageFiles.length; index++) {
+          const file = imageFiles[index];
           
-          // Get image data for this specific file
-          const imageDataKey = `imageData[${index}]`;
-          const imageData = req.body[imageDataKey] ? JSON.parse(req.body[imageDataKey]) : {};
+          // Get image data for this specific file - handle both array and individual field formats
+          let imageData = {};
+          if (req.body.imageData && Array.isArray(req.body.imageData) && req.body.imageData[index]) {
+            // Handle array format
+            imageData = JSON.parse(req.body.imageData[index]);
+          } else {
+            // Handle individual field format
+            const imageDataKey = `imageData[${index}]`;
+            imageData = req.body[imageDataKey] ? JSON.parse(req.body[imageDataKey]) : {};
+          }
+          
+          console.log(`=== IMAGE ${index} PROCESSING ===`);
+          console.log(`File: ${file.originalname}`);
+          console.log(`Image data array:`, req.body.imageData);
+          console.log(`Parsed image data:`, imageData);
+          console.log(`Color:`, imageData.color);
+          console.log(`Is color representation:`, imageData.isColorRepresentation);
           
           // Generate a temporary product ID for folder organization
           const tempProductId = `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -307,17 +345,25 @@ router.post('/upload', [
           // Upload to Cloudinary
           const cloudinaryResult = await uploadImage(file, tempProductId);
           
-          images.push({
+          const imageObj = {
             url: cloudinaryResult.url,
             alt: imageData.alt || file.originalname,
             isPrimary: imageData.isPrimary || false,
+            color: imageData.color,
             publicId: cloudinaryResult.publicId,
             width: cloudinaryResult.width,
             height: cloudinaryResult.height,
             format: cloudinaryResult.format,
             size: cloudinaryResult.size,
             folder: cloudinaryResult.folder
-          });
+          };
+          
+          images.push(imageObj);
+          
+          // If this is a color representation image, store it for the color
+          if (imageData.isColorRepresentation && imageData.color) {
+            processedColors.set(imageData.color, imageObj);
+          }
         }
         
         // Ensure at least one image is primary
@@ -326,7 +372,7 @@ router.post('/upload', [
         }
         
         // Clean up temporary files
-        req.files.forEach(file => {
+        imageFiles.forEach(file => {
           if (fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
           }
@@ -336,7 +382,7 @@ router.post('/upload', [
         console.error('Error uploading images to Cloudinary:', uploadError);
         
         // Clean up any uploaded files on error
-        req.files.forEach(file => {
+        imageFiles.forEach(file => {
           if (fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
           }
@@ -349,8 +395,28 @@ router.post('/upload', [
         });
       }
     }
+    
+        // Update colors with their colorImage data
+        if (productData.colors && productData.colors.length > 0) {
+          console.log('=== COLOR PROCESSING DEBUG ===');
+          console.log('Product colors:', productData.colors.map(c => c.name));
+          console.log('Processed colors map:', Array.from(processedColors.keys()));
+          
+          productData.colors = productData.colors.map(color => {
+            const colorImage = processedColors.get(color.name);
+            console.log(`Looking for color image for "${color.name}":`, colorImage ? 'FOUND' : 'NOT FOUND');
+            
+            if (!colorImage) {
+              throw new Error(`Color representation image is required for color: ${color.name}. Available colors with images: ${Array.from(processedColors.keys()).join(', ')}`);
+            }
+            return {
+              ...color,
+              colorImage: colorImage
+            };
+          });
+        }
 
-    // Create product object
+    // Create product object with simplified structure
     const product = new Product({
       ...productData,
       images: images
@@ -523,7 +589,7 @@ router.put('/:id', [
 // Update product with images (Admin only)
 router.put('/:id/with-images', [
   auth,
-  upload.array('images', 5), // Allow up to 5 images
+  uploadAny.any(), // Accept any field names for images and imageData
   body('name').optional().notEmpty().withMessage('Product name cannot be empty'),
   body('description').optional().notEmpty().withMessage('Product description cannot be empty'),
   body('price').optional().isFloat({ min: 0 }).withMessage('Valid price is required'),
@@ -569,55 +635,121 @@ router.put('/:id/with-images', [
     if (updateData.originalPrice) updateData.originalPrice = parseFloat(updateData.originalPrice);
     if (updateData.salePercentage) updateData.salePercentage = parseInt(updateData.salePercentage);
 
-    // Handle image uploads
+    // Handle image uploads with the same logic as create route
     if (req.files && req.files.length > 0) {
-      const uploadedImages = req.files.map((file, index) => ({
-        url: `/uploads/products/${file.filename}`,
-        alt: file.originalname.replace(/\.[^/.]+$/, ""),
-        isPrimary: false // We'll set primary after combining
-      }));
-      
-      // Get existing images from the request body
-      let existingImages = [];
-      if (req.body.existingImages) {
-        try {
-          existingImages = JSON.parse(req.body.existingImages);
-          // Filter out any blob URLs or invalid URLs from existing images
-          existingImages = existingImages.filter(img => 
-            img.url && 
-            !img.url.startsWith('blob:') && 
-            (img.url.startsWith('/uploads/') || img.url.startsWith('http'))
-          );
-          console.log('🔍 Existing images after filtering:', existingImages.length);
-        } catch (e) {
-          console.log('Could not parse existing images, starting fresh');
+      try {
+        // Filter out only the actual image files (not imageData fields)
+        const imageFiles = req.files.filter(file => file.fieldname === 'images');
+        
+        // Process uploaded images with Cloudinary
+        const images = [];
+        for (let index = 0; index < imageFiles.length; index++) {
+          const file = imageFiles[index];
+          
+          // Get image data for this specific file - handle both array and individual field formats
+          let imageData = {};
+          if (req.body.imageData && Array.isArray(req.body.imageData) && req.body.imageData[index]) {
+            // Handle array format
+            imageData = JSON.parse(req.body.imageData[index]);
+          } else {
+            // Handle individual field format
+            const imageDataKey = `imageData[${index}]`;
+            imageData = req.body[imageDataKey] ? JSON.parse(req.body[imageDataKey]) : {};
+          }
+          
+          // Generate a temporary product ID for folder organization
+          const tempProductId = `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+          
+          // Upload to Cloudinary
+          const cloudinaryResult = await uploadImage(file, tempProductId);
+          
+          images.push({
+            url: cloudinaryResult.url,
+            alt: imageData.alt || file.originalname,
+            isPrimary: imageData.isPrimary || false,
+            color: imageData.color || null,
+            isColorRepresentation: imageData.isColorRepresentation === true,
+            publicId: cloudinaryResult.publicId,
+            width: cloudinaryResult.width,
+            height: cloudinaryResult.height,
+            format: cloudinaryResult.format,
+            size: cloudinaryResult.size,
+            folder: cloudinaryResult.folder
+          });
         }
-      }
-      
-      // Combine existing images with new uploaded images
-      const allImages = [...existingImages, ...uploadedImages];
-      
-      // Ensure at least one image is primary
-      if (allImages.length > 0) {
-        const hasPrimary = allImages.some(img => img.isPrimary);
-        if (!hasPrimary) {
-          // If no existing image is primary, make the first new image primary
-          if (uploadedImages.length > 0) {
-            uploadedImages[0].isPrimary = true;
-          } else if (existingImages.length > 0) {
-            existingImages[0].isPrimary = true;
+        
+        // Process color representation images
+        const processedColors = updateData.colors.map(color => {
+          const colorRepresentationImage = images.find(img => 
+            img.color === color.name && img.isColorRepresentation
+          );
+          
+          if (!colorRepresentationImage) {
+            throw new Error(`Color representation image is required for color: ${color.name}`);
+          }
+          
+          return {
+            name: color.name,
+            inStock: color.inStock,
+            colorImage: {
+              url: colorRepresentationImage.url,
+              alt: colorRepresentationImage.alt,
+              publicId: colorRepresentationImage.publicId,
+              width: colorRepresentationImage.width,
+              height: colorRepresentationImage.height,
+              format: colorRepresentationImage.format,
+              size: colorRepresentationImage.size,
+              folder: colorRepresentationImage.folder
+            }
+          };
+        });
+
+        // Filter out color representation images from main images array
+        const productImages = images.filter(img => img.isColorRepresentation !== true);
+        
+        // Additional safety: Remove any duplicate URLs from product images
+        const uniqueProductImages = [];
+        const seenUrls = new Set();
+        
+        for (const img of productImages) {
+          if (!seenUrls.has(img.url)) {
+            seenUrls.add(img.url);
+            uniqueProductImages.push(img);
           }
         }
+        
+        // Ensure at least one image is primary
+        if (uniqueProductImages.length > 0 && !uniqueProductImages.some(img => img.isPrimary)) {
+          uniqueProductImages[0].isPrimary = true;
+        }
+        
+        // Update the product data
+        updateData.colors = processedColors;
+        updateData.images = uniqueProductImages;
+        
+        // Clean up temporary files
+        imageFiles.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        
+      } catch (uploadError) {
+        console.error('Error uploading images to Cloudinary:', uploadError);
+        
+        // Clean up any uploaded files on error
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload images to Cloudinary',
+          error: uploadError.message
+        });
       }
-      
-      console.log('📸 Final image array:', {
-        total: allImages.length,
-        existing: existingImages.length,
-        new: uploadedImages.length,
-        primary: allImages.find(img => img.isPrimary)?.alt
-      });
-      
-      updateData.images = allImages;
     }
 
     const product = await Product.findByIdAndUpdate(

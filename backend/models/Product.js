@@ -51,6 +51,10 @@ const productSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    color: {
+      type: String,
+      default: null // null means it's a general product image, string means it's specific to a color
+    },
     // Cloudinary specific fields
     publicId: {
       type: String,
@@ -83,9 +87,34 @@ const productSchema = new mongoose.Schema({
       required: true,
       trim: true
     },
-    hex: {
-      type: String,
-      match: [/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Invalid hex color code']
+    colorImage: {
+      url: {
+        type: String,
+        required: true
+      },
+      alt: {
+        type: String,
+        default: ''
+      },
+      publicId: {
+        type: String,
+        required: true
+      },
+      width: {
+        type: Number
+      },
+      height: {
+        type: Number
+      },
+      format: {
+        type: String
+      },
+      size: {
+        type: Number
+      },
+      folder: {
+        type: String
+      }
     },
     inStock: {
       type: Boolean,
@@ -99,7 +128,8 @@ const productSchema = new mongoose.Schema({
     },
     color: {
       type: String,
-      required: true
+      required: true,
+      trim: true
     },
     quantity: {
       type: Number,
@@ -272,6 +302,63 @@ productSchema.virtual('mainImage').get(function() {
   const primaryImage = this.images.find(img => img.isPrimary);
   return primaryImage ? primaryImage.url : this.images[0].url;
 });
+
+// Method to get images for a specific color
+productSchema.methods.getImagesForColor = function(colorName) {
+  if (!this.images || !Array.isArray(this.images)) {
+    return [];
+  }
+  
+  // First try to find color-specific images (excluding color representation images)
+  const colorImages = this.images.filter(img => 
+    img.color === colorName && 
+    img.isColorRepresentation !== true
+  );
+  
+  if (colorImages.length > 0) {
+    // Sort by isPrimary (primary first) then by creation order
+    return colorImages.sort((a, b) => {
+      if (a.isPrimary && !b.isPrimary) return -1;
+      if (!a.isPrimary && b.isPrimary) return 1;
+      return 0;
+    });
+  }
+  
+  // If no color-specific images, return general images (color: null or undefined)
+  const generalImages = this.images.filter(img => 
+    (img.color === null || img.color === undefined) && 
+    img.isColorRepresentation !== true
+  );
+  
+  if (generalImages.length > 0) {
+    // Sort by isPrimary (primary first) then by creation order
+    return generalImages.sort((a, b) => {
+      if (a.isPrimary && !b.isPrimary) return -1;
+      if (!a.isPrimary && b.isPrimary) return 1;
+      return 0;
+    });
+  }
+  
+  // Fallback: return all non-color-representation images
+  const fallbackImages = this.images.filter(img => img.isColorRepresentation !== true);
+  return fallbackImages.sort((a, b) => {
+    if (a.isPrimary && !b.isPrimary) return -1;
+    if (!a.isPrimary && b.isPrimary) return 1;
+    return 0;
+  });
+};
+
+// Method to get color representation image for a specific color
+productSchema.methods.getColorRepresentationImage = function(colorName) {
+  if (!this.images || !Array.isArray(this.images)) {
+    return null;
+  }
+  
+  return this.images.find(img => 
+    img.color === colorName && 
+    img.isColorRepresentation === true
+  ) || null;
+};
 
 // Virtual for in stock status
 productSchema.virtual('inStock').get(function() {
