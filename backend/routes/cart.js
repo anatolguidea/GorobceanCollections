@@ -9,7 +9,7 @@ const Product = require('../models/Product');
 router.get('/', auth, async (req, res) => {
   try {
     let cart = await Cart.findOne({ user: req.user.userId })
-      .populate('items.product', 'name price images inStock stockQuantity');
+      .populate('items.product');
 
     if (!cart) {
       // Create empty cart if none exists
@@ -92,8 +92,8 @@ router.post('/add', [
     );
 
     if (existingItemIndex > -1) {
-      // Update existing item quantity
-      cart.items[existingItemIndex].quantity += quantity;
+      // Update existing item quantity (replace, don't add)
+      cart.items[existingItemIndex].quantity = quantity;
     } else {
       // Add new item
       cart.items.push({
@@ -126,7 +126,7 @@ router.post('/add', [
 });
 
 // Update cart item quantity
-router.put('/update/:itemId', [
+router.patch('/items/:itemId', [
   auth,
   body('quantity').isInt({ min: 1 }).withMessage('Valid quantity is required')
 ], async (req, res) => {
@@ -143,7 +143,7 @@ router.put('/update/:itemId', [
     const { quantity } = req.body;
     const itemId = req.params.itemId;
     
-    const cart = await Cart.findOne({ user: req.user.userId });
+    const cart = await Cart.findOne({ user: req.user.userId }).populate('items.product');
     if (!cart) {
       return res.status(404).json({
         success: false,
@@ -156,6 +156,19 @@ router.put('/update/:itemId', [
       return res.status(404).json({
         success: false,
         message: 'Item not found in cart'
+      });
+    }
+
+    // Check inventory availability
+    const product = item.product;
+    const inventoryItem = product.inventory.find(
+      inv => inv.size === item.size && inv.color === item.color
+    );
+    
+    if (!inventoryItem || inventoryItem.quantity < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Only ${inventoryItem?.quantity || 0} items available in stock for the selected size and color`
       });
     }
 
@@ -180,35 +193,44 @@ router.put('/update/:itemId', [
 });
 
 // Remove item from cart
-router.delete('/remove/:itemIndex', auth, async (req, res) => {
+router.delete('/items/:itemId', auth, async (req, res) => {
   try {
-    const itemIndex = parseInt(req.params.itemIndex);
-    
-    if (isNaN(itemIndex) || itemIndex < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid item index'
-      });
-    }
+    const itemId = req.params.itemId;
+    console.log('Removing item with ID:', itemId, 'for user:', req.user.userId);
     
     const cart = await Cart.findOne({ user: req.user.userId });
     if (!cart) {
+      console.log('Cart not found for user:', req.user.userId);
       return res.status(404).json({
         success: false,
         message: 'Cart not found'
       });
     }
 
-    if (itemIndex >= cart.items.length) {
+    console.log('Cart found with', cart.items.length, 'items');
+    const item = cart.items.id(itemId);
+    if (!item) {
+      console.log('Item not found in cart. Available item IDs:', cart.items.map(i => i._id));
       return res.status(404).json({
         success: false,
-        message: 'Item index out of range'
+        message: 'Item not found in cart'
       });
     }
 
-    // Remove item at the specified index
-    cart.items.splice(itemIndex, 1);
-    await cart.save();
+    console.log('Item found, removing...');
+    // Remove the item using splice
+    const itemIndex = cart.items.findIndex(i => i._id.toString() === itemId);
+    if (itemIndex > -1) {
+      cart.items.splice(itemIndex, 1);
+      await cart.save();
+      console.log('Item removed successfully');
+    } else {
+      console.log('Item not found in cart items array');
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found in cart'
+      });
+    }
 
     // Populate the product information after saving
     const populatedCart = await Cart.findOne({ user: req.user.userId }).populate('items.product');
@@ -220,6 +242,7 @@ router.delete('/remove/:itemIndex', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing item:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error removing item from cart',

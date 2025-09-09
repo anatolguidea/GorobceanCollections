@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Lock, CreditCard, Truck, MapPin, Phone, Mail, Check, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useNotification } from '../contexts/NotificationContext'
 import { api } from '../utils/api'
 
 interface CheckoutForm {
@@ -37,6 +38,7 @@ interface CheckoutForm {
 
 const CheckoutClient = () => {
   const searchParams = useSearchParams()
+  const { showNotification } = useNotification()
   const [currentStep, setCurrentStep] = useState<'shipping' | 'payment' | 'review'>('shipping')
   const [isSuccess, setIsSuccess] = useState(false)
   const [formData, setFormData] = useState<CheckoutForm>({
@@ -61,25 +63,6 @@ const CheckoutClient = () => {
     billingZipCode: '',
     billingCountry: 'USA'
   })
-
-  const [notification, setNotification] = useState({
-    message: '',
-    type: 'success' as 'success' | 'error',
-    isVisible: false
-  })
-
-  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
-    setNotification({
-      message,
-      type,
-      isVisible: true
-    })
-    
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }))
-    }, 3000)
-  }
 
   // Check for success parameter
   useEffect(() => {
@@ -132,13 +115,23 @@ const CheckoutClient = () => {
   const nextStep = () => {
     if (currentStep === 'shipping') {
       if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.address || !formData.city || !formData.state || !formData.zipCode) {
-        showNotification('Please fill in all required shipping fields', 'error')
+        showNotification({
+          type: 'error',
+          title: 'Missing Information',
+          message: 'Please fill in all required shipping fields',
+          duration: 4000
+        })
         return
       }
       setCurrentStep('payment')
     } else if (currentStep === 'payment') {
       if (!formData.cardNumber || !formData.cardName || !formData.expiryMonth || !formData.expiryYear || !formData.cvv) {
-        showNotification('Please fill in all required payment fields', 'error')
+        showNotification({
+          type: 'error',
+          title: 'Missing Information',
+          message: 'Please fill in all required payment fields',
+          duration: 4000
+        })
         return
       }
       setCurrentStep('review')
@@ -159,7 +152,12 @@ const CheckoutClient = () => {
       const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
       for (const field of requiredFields) {
         if (!formData[field as keyof CheckoutForm]) {
-          showNotification(`Please fill in ${field}`, 'error')
+          showNotification({
+            type: 'error',
+            title: 'Missing Information',
+            message: `Please fill in ${field}`,
+            duration: 4000
+          })
           return
         }
       }
@@ -196,7 +194,12 @@ const CheckoutClient = () => {
       const response = await api.orders.create(orderData)
       console.log('Order created successfully:', response)
 
-      showNotification('Order placed successfully! You will receive a confirmation email shortly.', 'success')
+      showNotification({
+        type: 'success',
+        title: 'Order Placed Successfully!',
+        message: 'You will receive a confirmation email shortly.',
+        duration: 5000
+      })
       
       // Redirect to success page
       setTimeout(() => {
@@ -205,7 +208,12 @@ const CheckoutClient = () => {
     } catch (error) {
       console.error('Order submission error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to place order. Please try again.'
-      showNotification(errorMessage, 'error')
+      showNotification({
+        type: 'error',
+        title: 'Order Failed',
+        message: errorMessage,
+        duration: 4000
+      })
     }
   }
 
@@ -715,14 +723,6 @@ const CheckoutClient = () => {
         </div>
       </div>
 
-      {/* Notification */}
-      {notification.isVisible && (
-        <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-          notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-        }`}>
-          {notification.message}
-        </div>
-      )}
     </main>
   )
 }

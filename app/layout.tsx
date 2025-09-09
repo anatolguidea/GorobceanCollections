@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { NotificationProvider } from '@/contexts/NotificationContext'
 
 export const metadata: Metadata = {
   title: 'Gorobcean Collections - Premium Fashion',
@@ -19,7 +20,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-white">
         <ErrorBoundary>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </ErrorBoundary>
       </body>
     </html>

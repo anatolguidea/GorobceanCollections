@@ -9,7 +9,7 @@ cloudinary.config({
 
 // Image upload configuration
 const uploadConfig = {
-  folder: 'stylehub/products',
+  folder: 'clothing-store/products',
   allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
   transformation: [
     { width: 800, height: 800, crop: 'limit' }, // Large size

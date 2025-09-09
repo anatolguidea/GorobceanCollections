@@ -17,9 +17,9 @@ import {
   RotateCcw,
   X
 } from 'lucide-react'
-import { getImageUrl } from '../utils/imageUtils'
+import { getImageUrl, getCloudinaryUrl } from '../utils/imageUtils'
 import Link from 'next/link'
-import Notification from './Notification'
+import { useNotification } from '../contexts/NotificationContext'
 import { api } from '../utils/api'
 import Image from 'next/image'
 
@@ -29,7 +29,14 @@ interface CartItem {
     _id: string
     name: string
     price: number
-    images: Array<{ url: string; alt: string }>
+    images: Array<{ 
+      url: string
+      alt: string
+      isPrimary?: boolean
+      publicId?: string
+      color?: string | null
+      isColorRepresentation?: boolean
+    }>
   }
   size: string
   color: string
@@ -52,6 +59,7 @@ interface Cart {
 
 const CartClient = () => {
   const router = useRouter()
+  const { showNotification } = useNotification()
   const [cart, setCart] = useState<Cart | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,11 +67,6 @@ const CartClient = () => {
   const [userToken, setUserToken] = useState<string | null>(null)
   const [recommendedProducts, setRecommendedProducts] = useState<any[]>([])
   const [loadingRecommendations, setLoadingRecommendations] = useState(false)
-  const [notification, setNotification] = useState({
-    message: '',
-    type: 'success' as 'success' | 'error',
-    isVisible: false
-  })
   const [showCustomerForm, setShowCustomerForm] = useState(false)
   const [customerForm, setCustomerForm] = useState({
     firstName: '',
@@ -78,17 +81,51 @@ const CartClient = () => {
   })
   const [submittingOrder, setSubmittingOrder] = useState(false)
 
-  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
-    setNotification({
-      message,
-      type,
-      isVisible: true
-    })
+  // Helper function to get the main image for a specific color
+  const getMainImageForColor = (product: CartItem['product'], colorName: string) => {
+    if (!product || !product.images || product.images.length === 0) {
+      return null
+    }
+
+    // First try to find color-specific images (excluding color representation images)
+    const colorImages = product.images.filter(img => 
+      img.color === colorName && 
+      img.isColorRepresentation !== true
+    )
     
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }))
-    }, 3000)
+    if (colorImages.length > 0) {
+      // Sort by isPrimary (primary first) then by creation order
+      const sortedImages = colorImages.sort((a, b) => {
+        if (a.isPrimary && !b.isPrimary) return -1
+        if (!a.isPrimary && b.isPrimary) return 1
+        return 0
+      })
+      return sortedImages[0]
+    }
+    
+    // If no color-specific images, return general images (color: null or undefined)
+    const generalImages = product.images.filter(img => 
+      (img.color === null || img.color === undefined) && 
+      img.isColorRepresentation !== true
+    )
+    
+    if (generalImages.length > 0) {
+      // Sort by isPrimary (primary first) then by creation order
+      const sortedImages = generalImages.sort((a, b) => {
+        if (a.isPrimary && !b.isPrimary) return -1
+        if (!a.isPrimary && b.isPrimary) return 1
+        return 0
+      })
+      return sortedImages[0]
+    }
+    
+    // Fallback: return all non-color-representation images
+    const fallbackImages = product.images.filter(img => img.isColorRepresentation !== true)
+    return fallbackImages.sort((a, b) => {
+      if (a.isPrimary && !b.isPrimary) return -1
+      if (!a.isPrimary && b.isPrimary) return 1
+      return 0
+    })[0] || product.images[0]
   }
 
   const handleOrderSubmit = async () => {
@@ -96,7 +133,12 @@ const CartClient = () => {
 
     // Validate cart has items
     if (!cart.items || cart.items.length === 0) {
-      showNotification('Your cart is empty. Please add items before placing an order.', 'error')
+      showNotification({
+        type: 'error',
+        title: 'Empty Cart',
+        message: 'Your cart is empty. Please add items before placing an order.',
+        duration: 4000
+      })
       return
     }
 
@@ -104,7 +146,12 @@ const CartClient = () => {
     const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
     for (const field of requiredFields) {
       if (!customerForm[field as keyof typeof customerForm]) {
-        showNotification(`Please fill in ${field}`, 'error')
+        showNotification({
+          type: 'error',
+          title: 'Missing Information',
+          message: `Please fill in ${field}`,
+          duration: 3000
+        })
         return
       }
     }
@@ -143,7 +190,12 @@ const CartClient = () => {
       const response = await api.orders.create(orderData)
       console.log('Order created successfully:', response)
       
-      showNotification('Order placed successfully! You will receive a confirmation email shortly.', 'success')
+      showNotification({
+        type: 'success',
+        title: 'Order Placed Successfully!',
+        message: 'You will receive a confirmation email shortly.',
+        duration: 5000
+      })
       
       // Clear cart and redirect to confirmation
       setTimeout(() => {
@@ -152,7 +204,12 @@ const CartClient = () => {
     } catch (error) {
       console.error('Order submission error:', error)
       const errorMessage = error instanceof Error ? error.message : 'An error occurred while placing your order. Please try again.'
-      showNotification(errorMessage, 'error')
+      showNotification({
+        type: 'error',
+        title: 'Order Failed',
+        message: errorMessage,
+        duration: 4000
+      })
     } finally {
       setSubmittingOrder(false)
     }
@@ -170,18 +227,8 @@ const CartClient = () => {
     }
   }, [])
 
-  // Listen for cart update events
-  useEffect(() => {
-    const handleCartUpdate = () => {
-      const token = localStorage.getItem('token')
-      if (token) {
-        fetchCart(token)
-      }
-    }
-
-    window.addEventListener('cartUpdated', handleCartUpdate)
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
-  }, [])
+  // Note: Cart updates are handled locally in updateQuantity and removeItem functions
+  // No need to listen for external cart update events on the cart page
 
   // Fetch recommended products
   useEffect(() => {
@@ -224,47 +271,93 @@ const CartClient = () => {
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return
 
+    console.log('Updating quantity for item:', itemId, 'to:', newQuantity)
     setUpdating(itemId)
+    setLoading(true) // Add loading state during update
     try {
-      await api.cart.updateItem(itemId, { quantity: newQuantity })
+      const response = await api.cart.updateItem(itemId, { quantity: newQuantity })
+      console.log('Update response:', response)
       
-      // Update local cart state
-      setCart(prev => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          items: prev.items.map(item => 
-            item._id === itemId ? { ...item, quantity: newQuantity } : item
-          )
-        }
+      // Update local cart state with fresh data from server
+      if (response.success && response.data && response.data.data) {
+        setCart(response.data.data)
+      } else {
+        // Fallback to local update
+        setCart(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            items: prev.items.map(item => 
+              item._id === itemId ? { ...item, quantity: newQuantity } : item
+            )
+          }
+        })
+        recalculateTotals()
+      }
+      
+      showNotification({
+        type: 'success',
+        title: 'Cart Updated',
+        message: 'Item quantity updated successfully',
+        duration: 3000
       })
-      
-      // Recalculate totals
-      recalculateTotals()
-      showNotification('Cart updated successfully')
-    } catch (error) {
-      showNotification('An error occurred while updating cart', 'error')
+    } catch (error: any) {
+      console.error('Update quantity error:', error)
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      })
+      const errorMessage = error?.response?.data?.message || error?.message || 'An error occurred while updating cart'
+      showNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: errorMessage,
+        duration: 4000
+      })
     } finally {
       setUpdating(null)
+      setLoading(false) // Clear loading state after update
     }
   }
 
   const removeItem = async (itemId: string) => {
+    setLoading(true) // Add loading state during removal
     try {
-      await api.cart.removeItem(itemId)
+      const response = await api.cart.removeItem(itemId)
       
-      setCart(prev => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          items: prev.items.filter(item => item._id !== itemId)
-        }
+      // Update local cart state with fresh data from server
+      if (response.success && response.data && response.data.data) {
+        setCart(response.data.data)
+      } else {
+        // Fallback to local update
+        setCart(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            items: prev.items.filter(item => item._id !== itemId)
+          }
+        })
+        recalculateTotals()
+      }
+      
+      showNotification({
+        type: 'success',
+        title: 'Item Removed',
+        message: 'Item has been removed from your cart',
+        duration: 3000
       })
-      
-      recalculateTotals()
-      showNotification('Item removed from cart')
-    } catch (error) {
-      showNotification('An error occurred while removing item', 'error')
+    } catch (error: any) {
+      console.error('Remove item error:', error)
+      const errorMessage = error?.response?.data?.message || error?.message || 'An error occurred while removing item'
+      showNotification({
+        type: 'error',
+        title: 'Remove Failed',
+        message: errorMessage,
+        duration: 4000
+      })
+    } finally {
+      setLoading(false) // Clear loading state after removal
     }
   }
 
@@ -321,6 +414,19 @@ const CartClient = () => {
     )
   }
 
+  if (loading) {
+    return (
+      <main className="pt-20 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+            <p className="text-gray-600 mt-4">Loading your cart...</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   if (!cart || !cart.items || cart.items.length === 0) {
     return (
       <main className="pt-20 pb-16">
@@ -364,78 +470,89 @@ const CartClient = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="bg-white border border-gray-200">
-              {(cart.items || []).map((item) => (
+            {(cart.items || []).map((item) => (
                 <motion.div
                   key={item._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center p-6 border-b border-gray-100 last:border-b-0"
+                  className="group bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-lg mb-4 last:mb-0"
                 >
-                  {/* Product Image */}
-                  <div className="w-24 h-24 bg-gray-100 mr-6 overflow-hidden">
-                    <Image
-                      src={getImageUrl(item.product.images[0]?.url)}
-                      alt={item.product.images[0]?.alt || item.product.name}
-                      width={96}
-                      height={96}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Product Details */}
-                  <div className="flex-1">
-                    <h3 className="font-medium text-black mb-2">{item.product.name}</h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                      <span>Size: {item.size}</span>
-                      <span>Color: {item.color}</span>
+                  <div className="flex">
+                    {/* Product Image - Rectangular */}
+                    <div className="h-32 bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      <Image
+                        src={getImageUrl(getMainImageForColor(item.product, item.color)?.url || item.product.images[0]?.url || '/images/placeholder-product.svg')}
+                        alt={getMainImageForColor(item.product, item.color)?.alt || item.product.images[0]?.alt || item.product.name}
+                        width={160}
+                        height={128}
+                        className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.src = '/images/placeholder-product.svg'
+                        }}
+                      />
                     </div>
-                    <div className="flex items-center gap-4">
-                      <Link
-                        href={`/products/${item.product._id}`}
-                        className="text-gray-400 hover:text-black transition-colors"
-                        title="View Product"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </Link>
-                    </div>
-                  </div>
 
-                  {/* Quantity Controls */}
-                  <div className="flex items-center gap-3 mr-6">
-                    <button
-                      onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                      disabled={updating === item._id}
-                      className="w-8 h-8 border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="w-12 text-center font-medium">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                      disabled={updating === item._id}
-                      className="w-8 h-8 border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
+                    {/* Product Details */}
+                    <div className="flex-1 p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-medium text-black text-sm leading-tight">{item.product.name}</h3>
+                        <button
+                          onClick={() => removeItem(item._id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors ml-2"
+                          title="Remove Item"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 text-xs text-gray-600 mb-3">
+                        <span>Size: {item.size}</span>
+                        <span>Color: {item.color}</span>
+                      </div>
 
-                  {/* Price and Remove */}
-                  <div className="text-right">
-                    <div className="text-lg font-medium text-black mb-2">
-                      ${(item.product.price * item.quantity).toFixed(2)}
+                      <div className="flex items-center justify-between">
+                        {/* Quantity Controls */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                            disabled={updating === item._id}
+                            className="w-6 h-6 border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                            disabled={updating === item._id}
+                            className="w-6 h-6 border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Price and View Link */}
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/products/${item.product._id}`}
+                            className="text-gray-400 hover:text-black transition-colors"
+                            title="View Product"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-black">
+                              ${(item.product.price * item.quantity).toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              ${item.product.price.toFixed(2)} each
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => removeItem(item._id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                      title="Remove Item"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
                 </motion.div>
               ))}
-            </div>
           </div>
 
           {/* Order Summary */}
@@ -649,13 +766,6 @@ const CartClient = () => {
           </section>
         )}
       </div>
-
-      <Notification
-        message={notification.message}
-        type={notification.type}
-        isVisible={notification.isVisible}
-        onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
-      />
     </main>
   )
 }

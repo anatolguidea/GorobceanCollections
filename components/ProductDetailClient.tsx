@@ -19,6 +19,7 @@ import {
 import { getImageUrl, getCloudinaryUrl } from '../utils/imageUtils'
 import { api } from '../utils/api'
 import { isAuthenticated } from '../utils/auth'
+import { useNotification } from '../contexts/NotificationContext'
 import Image from 'next/image'
 
 interface Product {
@@ -34,6 +35,8 @@ interface Product {
     alt: string
     isPrimary?: boolean
     publicId?: string
+    color?: string | null
+    isColorRepresentation?: boolean
   }>
   sizes: string[]
   colors: Array<{ 
@@ -72,6 +75,7 @@ interface ProductDetailClientProps {
 }
 
 const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
+  const { showNotification } = useNotification()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -232,7 +236,12 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
 
   const handleAddToCart = async () => {
     if (!product || !selectedSize || !selectedColor) {
-      alert('Please select size and color')
+      showNotification({
+        type: 'warning',
+        title: 'Selection Required',
+        message: 'Please select both size and color before adding to cart.',
+        duration: 3000
+      })
       return
     }
 
@@ -252,10 +261,40 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
       
       // Dispatch cart update event
       window.dispatchEvent(new Event('cartUpdated'))
-      alert('Product added to cart!')
+      
+      // Show success notification with product details
+      showNotification({
+        type: 'success',
+        title: 'Added to Cart!',
+        message: 'Your item has been successfully added to your cart.',
+        productDetails: {
+          name: product.name,
+          image: getCloudinaryUrl(displayedImages[0]?.url || product.images[0]?.url, {
+            width: 96,
+            height: 96,
+            quality: 'auto:good',
+            format: 'auto',
+            crop: 'fill'
+          }),
+          price: product.price,
+          size: selectedSize,
+          color: selectedColor,
+          quantity: quantity
+        },
+        action: {
+          label: 'View Cart',
+          onClick: () => window.location.href = '/cart'
+        },
+        duration: 5000
+      })
     } catch (err) {
       console.error('Error adding to cart:', err)
-      alert(err instanceof Error ? err.message : 'Failed to add to cart')
+      showNotification({
+        type: 'error',
+        title: 'Failed to Add Item',
+        message: err instanceof Error ? err.message : 'Failed to add to cart. Please try again.',
+        duration: 4000
+      })
     } finally {
       setAddingToCart(false)
     }
