@@ -90,12 +90,12 @@ const FeaturedProducts = () => {
     return (
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="text-center">
-          <h2 className="text-3xl font-light text-black tracking-[0.1em] mb-4">
-            FEATURED PRODUCTS
-          </h2>
-          <p className="text-lg text-red-600">Error loading random products: {error}</p>
-        </div>
+          <div className="text-center">
+            <h2 className="text-3xl font-light text-black tracking-[0.1em] mb-4">
+              FEATURED PRODUCTS
+            </h2>
+            <p className="text-lg text-red-600">Error loading random products: {error}</p>
+          </div>
         </div>
       </section>
     )
@@ -124,29 +124,33 @@ const FeaturedProducts = () => {
               <p className="text-lg text-gray-600">No featured products available at the moment.</p>
             </div>
           ) : (
-            products.map((product, index) => (
-            <motion.div
-              key={product._id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="group flex-shrink-0 w-56"
-            >
-              <Link 
-                href={`/products/${product._id}`}
-                className="block"
+            products.map((product, index) => {
+              // Get the best image: primary first, then first image
+              const bestImage = product.images.find(img => img.isPrimary) || product.images[0]
+              
+              return (
+              <motion.div
+                key={product._id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group flex-shrink-0 w-56"
               >
-                <div className="relative bg-white overflow-hidden">
-                  {/* Product Image - Model wearing the clothing */}
-                  <div className="relative h-[400px] overflow-hidden bg-gray-100">
-                    <img
-                      src={getImageUrl(product.images[0]?.url)}
-                      alt={product.images[0]?.alt || product.name}
+                <Link 
+                  href={`/products/${product._id}`}
+                  className="block"
+                >
+                  <div className="relative bg-white overflow-hidden">
+                    {/* Product Image - Model wearing the clothing */}
+                    <div className="relative h-[400px] overflow-hidden bg-gray-100">
+                      <img
+                        src={getImageUrl(bestImage?.url)}
+                        alt={bestImage?.alt || product.name}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
                         console.error('Featured product image failed to load:', e.currentTarget.src)
-                        console.error('Product:', product.name, 'Image URL:', product.images[0]?.url)
+                        console.error('Product:', product.name, 'Image URL:', bestImage?.url)
                         e.currentTarget.src = '/images/products/fashion.webp'
                       }}
                       onLoad={(e) => {
@@ -170,7 +174,8 @@ const FeaturedProducts = () => {
                 </div>
               </Link>
             </motion.div>
-            ))
+            )
+            })
           )}
         </div>
       </div>

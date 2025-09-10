@@ -123,53 +123,58 @@ const NewestProducts = () => {
               <p className="text-lg text-gray-600">No newest products available at the moment.</p>
             </div>
           ) : (
-            products.map((product, index) => (
-            <motion.div
-              key={product._id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="group flex-shrink-0 w-56"
-            >
-              <Link 
-                href={`/products/${product._id}`}
-                className="block"
+            products.map((product, index) => {
+              // Get the best image: primary first, then first image
+              const bestImage = product.images.find(img => img.isPrimary) || product.images[0]
+              
+              return (
+              <motion.div
+                key={product._id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group flex-shrink-0 w-56"
               >
-                <div className="relative bg-white overflow-hidden">
-                  {/* Product Image - Model wearing the clothing */}
-                  <div className="relative h-[400px] overflow-hidden bg-gray-100">
-                    <img
-                      src={getImageUrl(product.images[0]?.url)}
-                      alt={product.images[0]?.alt || product.name}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      onError={(e) => {
-                        console.error('Newest product image failed to load:', e.currentTarget.src)
-                        console.error('Product:', product.name, 'Image URL:', product.images[0]?.url)
-                        e.currentTarget.src = '/images/placeholder-product.svg'
-                      }}
-                      onLoad={(e) => {
-                        console.log('Newest product image loaded successfully:', e.currentTarget.src)
-                      }}
-                      crossOrigin="anonymous"
-                    />
-                  </div>
+                <Link 
+                  href={`/products/${product._id}`}
+                  className="block"
+                >
+                  <div className="relative bg-white overflow-hidden">
+                    {/* Product Image - Model wearing the clothing */}
+                    <div className="relative h-[400px] overflow-hidden bg-gray-100">
+                      <img
+                        src={getImageUrl(bestImage?.url)}
+                        alt={bestImage?.alt || product.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          console.error('Newest product image failed to load:', e.currentTarget.src)
+                          console.error('Product:', product.name, 'Image URL:', bestImage?.url)
+                          e.currentTarget.src = '/images/placeholder-product.svg'
+                        }}
+                        onLoad={(e) => {
+                          console.log('Newest product image loaded successfully:', e.currentTarget.src)
+                        }}
+                        crossOrigin="anonymous"
+                      />
+                    </div>
 
-                  {/* Product Info - Name and Price below */}
-                  <div className="mt-3 text-center">
-                    <h3 className="text-sm font-light text-black mb-1 tracking-[0.1em]">
-                      {product.name}
-                    </h3>
-                    
-                    {/* Price */}
-                    <div className="text-sm font-light text-black tracking-[0.1em]">
-                      €{product.price.toFixed(2).replace('.', ',')}
+                    {/* Product Info - Name and Price below */}
+                    <div className="mt-3 text-center">
+                      <h3 className="text-sm font-light text-black mb-1 tracking-[0.1em]">
+                        {product.name}
+                      </h3>
+                      
+                      {/* Price */}
+                      <div className="text-sm font-light text-black tracking-[0.1em]">
+                        €{product.price.toFixed(2).replace('.', ',')}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            </motion.div>
-            ))
+                </Link>
+              </motion.div>
+            )
+            })
           )}
         </div>
         

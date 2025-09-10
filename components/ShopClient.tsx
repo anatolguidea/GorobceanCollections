@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getImageUrl } from '@/utils/imageUtils'
-import { Package, Filter, X, Loader2 } from 'lucide-react'
+import { Filter, X, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { api } from '../utils/api'
 
@@ -492,7 +492,8 @@ export default function ShopClient() {
             ) : Array.isArray(products) && products.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {products.map((product) => {
-                  const primaryImage = product.images.find(img => img.isPrimary) || product.images[0]
+                  // Get the best image: primary first, then first image
+                  const bestImage = product.images.find(img => img.isPrimary) || product.images[0]
                   
                   return (
                     <div key={product._id} className="group px-3">
@@ -500,24 +501,20 @@ export default function ShopClient() {
                         <div className="relative bg-white overflow-hidden">
                           {/* Product Image */}
                           <div className="relative h-80 overflow-hidden bg-gray-100">
-                            {primaryImage ? (
-                              <img
-                                src={getImageUrl(primaryImage.url)}
-                                alt={primaryImage.alt || product.name}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.style.display = 'none'
-                                  const fallback = target.parentElement?.querySelector('.fallback-image')
-                                  if (fallback) {
-                                    (fallback as HTMLElement).style.display = 'flex'
-                                  }
-                                }}
-                              />
-                            ) : null}
-                            <div className="fallback-image absolute inset-0 flex items-center justify-center bg-gray-200" style={{ display: primaryImage ? 'none' : 'flex' }}>
-                              <Package className="h-12 w-12 text-gray-400" />
-                            </div>
+                            <img
+                              src={getImageUrl(bestImage?.url)}
+                              alt={bestImage?.alt || product.name}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                console.error('Shop product image failed to load:', e.currentTarget.src)
+                                console.error('Product:', product.name, 'Image URL:', bestImage?.url)
+                                e.currentTarget.src = '/images/placeholder-product.svg'
+                              }}
+                              onLoad={(e) => {
+                                console.log('Shop product image loaded successfully:', e.currentTarget.src)
+                              }}
+                              crossOrigin="anonymous"
+                            />
                           </div>
                           
                           {/* Product Info - Name and Price below */}
@@ -540,7 +537,9 @@ export default function ShopClient() {
             ) : (
               /* No Products Found Message - Keep it in the products area */
               <div className="text-center py-16">
-                <Package className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <div className="mx-auto h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl text-gray-400">📦</span>
+                </div>
                 <h2 className="text-2xl font-light text-black tracking-[0.1em] mb-4">
                   No Products Found
                 </h2>

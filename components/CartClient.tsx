@@ -94,13 +94,10 @@ const CartClient = () => {
     )
     
     if (colorImages.length > 0) {
-      // Sort by isPrimary (primary first) then by creation order
-      const sortedImages = colorImages.sort((a, b) => {
-        if (a.isPrimary && !b.isPrimary) return -1
-        if (!a.isPrimary && b.isPrimary) return 1
-        return 0
-      })
-      return sortedImages[0]
+      // Return the first image for this color (maintains original order)
+      // If there's a primary image, prioritize it, otherwise return first
+      const primaryImage = colorImages.find(img => img.isPrimary)
+      return primaryImage || colorImages[0]
     }
     
     // If no color-specific images, return general images (color: null or undefined)
@@ -110,22 +107,14 @@ const CartClient = () => {
     )
     
     if (generalImages.length > 0) {
-      // Sort by isPrimary (primary first) then by creation order
-      const sortedImages = generalImages.sort((a, b) => {
-        if (a.isPrimary && !b.isPrimary) return -1
-        if (!a.isPrimary && b.isPrimary) return 1
-        return 0
-      })
-      return sortedImages[0]
+      // Return the first general image (maintains original order)
+      const primaryImage = generalImages.find(img => img.isPrimary)
+      return primaryImage || generalImages[0]
     }
     
-    // Fallback: return all non-color-representation images
+    // Fallback: return first non-color-representation image
     const fallbackImages = product.images.filter(img => img.isColorRepresentation !== true)
-    return fallbackImages.sort((a, b) => {
-      if (a.isPrimary && !b.isPrimary) return -1
-      if (!a.isPrimary && b.isPrimary) return 1
-      return 0
-    })[0] || product.images[0]
+    return fallbackImages[0] || product.images[0]
   }
 
   const handleOrderSubmit = async () => {
@@ -273,7 +262,6 @@ const CartClient = () => {
 
     console.log('Updating quantity for item:', itemId, 'to:', newQuantity)
     setUpdating(itemId)
-    setLoading(true) // Add loading state during update
     try {
       const response = await api.cart.updateItem(itemId, { quantity: newQuantity })
       console.log('Update response:', response)
@@ -317,12 +305,11 @@ const CartClient = () => {
       })
     } finally {
       setUpdating(null)
-      setLoading(false) // Clear loading state after update
     }
   }
 
   const removeItem = async (itemId: string) => {
-    setLoading(true) // Add loading state during removal
+    setUpdating(itemId) // Show loading on the specific item being removed
     try {
       const response = await api.cart.removeItem(itemId)
       
@@ -357,7 +344,7 @@ const CartClient = () => {
         duration: 4000
       })
     } finally {
-      setLoading(false) // Clear loading state after removal
+      setUpdating(null)
     }
   }
 
@@ -414,18 +401,6 @@ const CartClient = () => {
     )
   }
 
-  if (loading) {
-    return (
-      <main className="pt-20 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading your cart...</p>
-          </div>
-        </div>
-      </main>
-    )
-  }
 
   if (!cart || !cart.items || cart.items.length === 0) {
     return (
@@ -498,10 +473,15 @@ const CartClient = () => {
                         <h3 className="font-medium text-black text-sm leading-tight">{item.product.name}</h3>
                         <button
                           onClick={() => removeItem(item._id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors ml-2"
+                          disabled={updating === item._id}
+                          className="text-gray-400 hover:text-red-500 transition-colors ml-2 disabled:opacity-50"
                           title="Remove Item"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {updating === item._id ? (
+                            <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                       
@@ -518,7 +498,11 @@ const CartClient = () => {
                             disabled={updating === item._id}
                             className="w-6 h-6 border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs"
                           >
-                            <Minus className="w-3 h-3" />
+                            {updating === item._id ? (
+                              <div className="w-3 h-3 border border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                            ) : (
+                              <Minus className="w-3 h-3" />
+                            )}
                           </button>
                           <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
                           <button
@@ -526,7 +510,11 @@ const CartClient = () => {
                             disabled={updating === item._id}
                             className="w-6 h-6 border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs"
                           >
-                            <Plus className="w-3 h-3" />
+                            {updating === item._id ? (
+                              <div className="w-3 h-3 border border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                            ) : (
+                              <Plus className="w-3 h-3" />
+                            )}
                           </button>
                         </div>
 

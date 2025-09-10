@@ -366,9 +366,19 @@ router.post('/upload', [
           }
         }
         
-        // Ensure at least one image is primary
-        if (images.length > 0 && !images.some(img => img.isPrimary)) {
-          images[0].isPrimary = true;
+        // Ensure at least one product image (not color representation) is primary
+        if (images.length > 0) {
+          const hasPrimaryProductImage = images.some(img => img.isPrimary && !img.isColorRepresentation);
+          if (!hasPrimaryProductImage) {
+            // Find the first product image (not color representation) and make it primary
+            const firstProductImage = images.find(img => !img.isColorRepresentation);
+            if (firstProductImage) {
+              firstProductImage.isPrimary = true;
+            } else {
+              // Fallback: make the first image primary if no product images exist
+              images[0].isPrimary = true;
+            }
+          }
         }
         
         // Clean up temporary files

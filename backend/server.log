@@ -620,3 +620,209 @@ Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdA
 Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
 2025-09-09 18:19:58:1958 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:19:58 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
 2025-09-09 18:19:58:1958 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:16 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:16 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:16 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:16 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:16:2316 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:22 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:22 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:22 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:22 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:22:2322 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:53 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:53 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:53 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:53 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:53:2353 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+Caching response for: products:1:16:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/products?sortBy=createdAt&sortOrder=desc&limit=16&page=1 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:16:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/products?sortBy=createdAt&sortOrder=desc&limit=16&page=1 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:16:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/products?sortBy=createdAt&sortOrder=desc&limit=16&page=1 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:16:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/products?sortBy=createdAt&sortOrder=desc&limit=16&page=1 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:16:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/products?sortBy=createdAt&sortOrder=desc&limit=16&page=1 HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:16:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:23:59 +0000] "GET /api/products?sortBy=createdAt&sortOrder=desc&limit=16&page=1 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:23:59:2359 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: product:68c045468edef79e29e3927f
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/products/68c045468edef79e29e3927f HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: product:68c045468edef79e29e3927f
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/products/68c045468edef79e29e3927f HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:00 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:00:240 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/cart HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:24 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:24:2424 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:25:2425 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:25 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:25:2425 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:25:2425 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:25 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:25:2425 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:26:2426 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:26 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:26:2426 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:26:2426 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:26 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:26:2426 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:27:2427 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:27 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:27:2427 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:27:2427 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:27 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:27:2427 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:28 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:28 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:28 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:28 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:28:2428 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:29:2429 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:29 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:29:2429 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:29:2429 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:29 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:29:2429 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:30:2430 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:30 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:30:2430 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:30:2430 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:30 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:30:2430 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:31:2431 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:31 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:31:2431 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:31:2431 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:31 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:31:2431 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:32 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:32 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:32 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:32 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:32:2432 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:33:2433 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:33 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:33:2433 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:33:2433 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:33 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:33:2433 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:34 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:34 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:34 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:34 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:34:2434 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:38:2438 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:38 +0000] "PATCH /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:38:2438 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:38:2438 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:38 +0000] "GET /api/products?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:38:2438 [35mhttp[39m: [35mAPI Request[39m
+Removing item with ID: 68c045968edef79e29e392c6 for user: 68c04208552c24e1c23ad58e
+Cart found with 1 items
+Item found, removing...
+Item removed successfully
+2025-09-09 18:24:40:2440 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:40 +0000] "DELETE /api/cart/items/68c045968edef79e29e392c6 HTTP/1.1" 200 685 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:40:2440 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/cart HTTP/1.1" 200 603 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/products/random/random?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/products?limit=4&sortBy=createdAt&sortOrder=desc HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/cart HTTP/1.1" 200 603 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/auth/me HTTP/1.1" 200 659 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+Cache hit for: products:1:4:all:none:none:none:none:none:none:none:none:createdAt:desc
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/products?limit=4&sortBy=createdAt&sortOrder=desc HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/categories HTTP/1.1" 200 298 "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35m::1 - - [09/Sep/2025:15:24:43 +0000] "GET /api/products/random/random?limit=4 HTTP/1.1" 200 - "http://localhost:3000/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"[39m
+2025-09-09 18:24:43:2443 [35mhttp[39m: [35mAPI Request[39m
