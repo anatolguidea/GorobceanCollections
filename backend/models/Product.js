@@ -55,6 +55,10 @@ const productSchema = new mongoose.Schema({
       type: String,
       default: null // null means it's a general product image, string means it's specific to a color
     },
+    isColorRepresentation: {
+      type: Boolean,
+      default: false // true if this image is just a color swatch/representation
+    },
     // Cloudinary specific fields
     publicId: {
       type: String,

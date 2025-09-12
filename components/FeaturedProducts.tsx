@@ -25,42 +25,29 @@ const FeaturedProducts = () => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchRandomProducts = async () => {
+    const fetchFeaturedProducts = async () => {
       try {
         setLoading(true)
-        console.log('Fetching random products...')
-        // Fetch random products using the API client
-        const response = await api.products.getRandom(4)
-        console.log('Random products response:', response)
+        // Fetch featured products using the API client
+        const response = await api.products.getFeatured()
         
-        // Debug the response structure
-        console.log('Response structure:', {
-          success: response.success,
-          hasData: !!response.data,
-          dataSuccess: response.data?.success,
-          hasDataData: !!response.data?.data,
-          hasProducts: !!response.data?.data?.products,
-          productsIsArray: Array.isArray(response.data?.data?.products),
-          productsLength: response.data?.data?.products?.length
-        })
-        
-        if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data.products)) {
-          setProducts(response.data.data.products)
-          console.log('Random products set:', response.data.data.products.length)
+        // Featured products API returns products directly in response.data.data (not wrapped in "products")
+        if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data)) {
+          setProducts(response.data.data)
         } else {
-          console.error('Invalid response structure:', response)
-          throw new Error('Failed to fetch random products')
+          console.error('❌ FeaturedProducts: Invalid response structure:', response)
+          throw new Error('Failed to fetch featured products')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
-        console.error('Error fetching random products:', err)
+        console.error('Error fetching featured products:', err)
       } finally {
         setLoading(false)
         console.log('Loading finished')
       }
     }
 
-    fetchRandomProducts()
+    fetchFeaturedProducts()
   }, [])
 
   if (loading) {
@@ -94,7 +81,7 @@ const FeaturedProducts = () => {
             <h2 className="text-3xl font-light text-black tracking-[0.1em] mb-4">
               FEATURED PRODUCTS
             </h2>
-            <p className="text-lg text-red-600">Error loading random products: {error}</p>
+            <p className="text-lg text-red-600">Error loading featured products: {error}</p>
           </div>
         </div>
       </section>

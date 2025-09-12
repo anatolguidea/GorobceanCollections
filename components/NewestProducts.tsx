@@ -28,15 +28,13 @@ const NewestProducts = () => {
     const fetchNewestProducts = async () => {
       try {
         setLoading(true)
-        console.log('Fetching newest products...')
         // Fetch newest products by creation date, limit to 4 products
         const response = await api.products.getAll({ limit: 4, sortBy: 'createdAt', sortOrder: 'desc' })
-        console.log('Newest products response:', response)
         
         if (response.success && response.data && response.data.success && response.data.data && Array.isArray(response.data.data.products)) {
           setProducts(response.data.data.products)
-          console.log('Products set:', response.data.data.products.length)
         } else {
+          console.error('❌ NewestProducts: Invalid response structure:', response)
           throw new Error('Failed to fetch newest products')
         }
       } catch (err) {

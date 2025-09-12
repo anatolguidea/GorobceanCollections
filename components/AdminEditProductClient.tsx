@@ -475,7 +475,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
             imageIndex++
           }
           
-          // Add product images for this color
+          // Add product images for this color - keep original order
           const colorImages = color.images.filter(img => img.file)
           console.log(`Found ${colorImages.length} product images for color: ${color.name}`)
           

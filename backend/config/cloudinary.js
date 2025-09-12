@@ -12,8 +12,8 @@ const uploadConfig = {
   folder: 'clothing-store/products',
   allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
   transformation: [
-    { width: 800, height: 800, crop: 'limit' }, // Large size
-    { quality: 'auto:good' }, // Automatic quality optimization
+    { width: 1200, height: 1200, crop: 'limit' }, // Larger size for better quality
+    { quality: 'auto:best' }, // Best quality optimization
     { format: 'auto' } // Automatic format selection
   ]
 };
@@ -25,22 +25,22 @@ const generateImageSizes = (publicId) => {
   return {
     thumbnail: cloudinary.url(publicId, {
       transformation: [
-        { width: 200, height: 200, crop: 'fill', gravity: 'auto' },
-        { quality: 'auto:good' },
+        { width: 300, height: 300, crop: 'fill', gravity: 'auto' },
+        { quality: 'auto:best' },
         { format: 'auto' }
       ]
     }),
     medium: cloudinary.url(publicId, {
       transformation: [
-        { width: 400, height: 400, crop: 'limit' },
-        { quality: 'auto:good' },
+        { width: 600, height: 600, crop: 'limit' },
+        { quality: 'auto:best' },
         { format: 'auto' }
       ]
     }),
     large: cloudinary.url(publicId, {
       transformation: [
-        { width: 800, height: 800, crop: 'limit' },
-        { quality: 'auto:good' },
+        { width: 1200, height: 1200, crop: 'limit' },
+        { quality: 'auto:best' },
         { format: 'auto' }
       ]
     }),

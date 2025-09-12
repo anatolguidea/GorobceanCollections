@@ -108,20 +108,14 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
     )
     
     if (colorImages.length > 0) {
-      // Sort by isPrimary (primary first) then by creation order
-      const sortedImages = colorImages.sort((a, b) => {
-        if (a.isPrimary && !b.isPrimary) return -1
-        if (!a.isPrimary && b.isPrimary) return 1
-        return 0
-      })
-      
+      // Keep original order from database (no sorting)
       console.log(`=== Images for color "${colorName}" ===`);
-      console.log('Total color-specific images:', sortedImages.length);
-      sortedImages.forEach((img, i) => {
+      console.log('Total color-specific images:', colorImages.length);
+      colorImages.forEach((img, i) => {
         console.log(`Image ${i+1}: ${img.alt} - ${img.url} (Primary: ${img.isPrimary})`);
       });
       
-      return sortedImages
+      return colorImages
     }
     
     // If no color-specific images, return general images (color: null or undefined)

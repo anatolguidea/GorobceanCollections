@@ -84,9 +84,9 @@ export const getCloudinaryUrl = (imagePath: string, options: {
     if (size.length > 0) transformations.push(size.join(','))
   }
   
-  if (options.quality) {
-    transformations.push(`q_${options.quality}`)
-  }
+  // Use best quality by default if not specified
+  const quality = options.quality || 'auto:best'
+  transformations.push(`q_${quality}`)
   
   if (options.format) {
     transformations.push(`f_${options.format}`)

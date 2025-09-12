@@ -213,6 +213,7 @@ router.get('/featured/featured', cacheConfigs.featuredProducts, async (req, res)
       isFeatured: true,
       isActive: true
     })
+    .sort({ createdAt: -1 }) // Sort by creation date, newest first
     .limit(8)
     .populate('category', 'name slug');
 
@@ -317,27 +318,40 @@ router.post('/upload', [
         // Filter out only the actual image files (not imageData fields)
         const imageFiles = req.files.filter(file => file.fieldname === 'images');
         
-        // Upload each image to Cloudinary
+        // Create a map to match files with their data by index
+        const fileDataMap = new Map();
+        
+        // First, collect all imageData entries
+        if (req.body.imageData && Array.isArray(req.body.imageData)) {
+          req.body.imageData.forEach((data, index) => {
+            if (data) {
+              try {
+                const parsedData = JSON.parse(data);
+                fileDataMap.set(index, parsedData);
+              } catch (e) {
+                console.error(`Error parsing imageData[${index}]:`, e);
+              }
+            }
+          });
+        }
+        
+        // Process images in the order they were sent (by index)
+        console.log(`=== BACKEND IMAGE PROCESSING ===`);
+        console.log(`Total files received: ${imageFiles.length}`);
+        console.log(`Files order:`, imageFiles.map((f, i) => `${i}: ${f.originalname}`));
+        console.log(`ImageData order:`, req.body.imageData);
+        
         for (let index = 0; index < imageFiles.length; index++) {
           const file = imageFiles[index];
-          
-          // Get image data for this specific file - handle both array and individual field formats
-          let imageData = {};
-          if (req.body.imageData && Array.isArray(req.body.imageData) && req.body.imageData[index]) {
-            // Handle array format
-            imageData = JSON.parse(req.body.imageData[index]);
-          } else {
-            // Handle individual field format
-            const imageDataKey = `imageData[${index}]`;
-            imageData = req.body[imageDataKey] ? JSON.parse(req.body[imageDataKey]) : {};
-          }
+          const imageData = fileDataMap.get(index) || {};
           
           console.log(`=== IMAGE ${index} PROCESSING ===`);
           console.log(`File: ${file.originalname}`);
-          console.log(`Image data array:`, req.body.imageData);
           console.log(`Parsed image data:`, imageData);
           console.log(`Color:`, imageData.color);
           console.log(`Is color representation:`, imageData.isColorRepresentation);
+          console.log(`Is primary:`, imageData.isPrimary);
+          console.log(`Form order:`, imageData.formOrder);
           
           // Generate a temporary product ID for folder organization
           const tempProductId = `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -350,6 +364,7 @@ router.post('/upload', [
             alt: imageData.alt || file.originalname,
             isPrimary: imageData.isPrimary || false,
             color: imageData.color,
+            isColorRepresentation: imageData.isColorRepresentation === true,
             publicId: cloudinaryResult.publicId,
             width: cloudinaryResult.width,
             height: cloudinaryResult.height,
@@ -651,21 +666,28 @@ router.put('/:id/with-images', [
         // Filter out only the actual image files (not imageData fields)
         const imageFiles = req.files.filter(file => file.fieldname === 'images');
         
-        // Process uploaded images with Cloudinary
+        // Create a map to match files with their data by index
+        const fileDataMap = new Map();
+        
+        // First, collect all imageData entries
+        if (req.body.imageData && Array.isArray(req.body.imageData)) {
+          req.body.imageData.forEach((data, index) => {
+            if (data) {
+              try {
+                const parsedData = JSON.parse(data);
+                fileDataMap.set(index, parsedData);
+              } catch (e) {
+                console.error(`Error parsing imageData[${index}]:`, e);
+              }
+            }
+          });
+        }
+        
+        // Process uploaded images with Cloudinary in the correct order
         const images = [];
         for (let index = 0; index < imageFiles.length; index++) {
           const file = imageFiles[index];
-          
-          // Get image data for this specific file - handle both array and individual field formats
-          let imageData = {};
-          if (req.body.imageData && Array.isArray(req.body.imageData) && req.body.imageData[index]) {
-            // Handle array format
-            imageData = JSON.parse(req.body.imageData[index]);
-          } else {
-            // Handle individual field format
-            const imageDataKey = `imageData[${index}]`;
-            imageData = req.body[imageDataKey] ? JSON.parse(req.body[imageDataKey]) : {};
-          }
+          const imageData = fileDataMap.get(index) || {};
           
           // Generate a temporary product ID for folder organization
           const tempProductId = `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`;

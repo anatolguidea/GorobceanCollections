@@ -27,7 +27,7 @@ const OptimizedImage = ({
   className = '', 
   sizes,
   priority = false,
-  quality = 75,
+  quality = 90,
   placeholder = 'empty',
   blurDataURL 
 }: OptimizedImageProps) => {

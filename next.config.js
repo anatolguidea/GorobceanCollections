@@ -13,8 +13,14 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
     ],
-    unoptimized: process.env.NODE_ENV === 'development', // Disable optimization in dev for faster builds
+    // Enable optimization in development for better quality
+    unoptimized: false,
   },
 }
 

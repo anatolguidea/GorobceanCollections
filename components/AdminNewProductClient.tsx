@@ -226,6 +226,14 @@ const AdminNewProductClient = () => {
           file,
           preview
         }
+        
+        // Debug: Log the array state after upload
+        console.log(`=== AFTER UPLOAD TO POSITION ${imageIndex} ===`)
+        console.log(`Color: ${newColors[colorIndex].name}`)
+        console.log('Array state:', newColors[colorIndex].images.map((img, idx) => 
+          `${idx}: ${img.file?.name || 'no file'} (Primary: ${img.isPrimary})`
+        ))
+        
         return { ...prev, colors: newColors }
       })
     }
@@ -409,7 +417,34 @@ const AdminNewProductClient = () => {
         console.log('Color image:', color.colorImage)
         console.log('Color product images:', color.images)
         
-        // Add color representation image first
+        // Add product images FIRST in exact form order
+        const colorImages = color.images.filter(img => img.file)
+        console.log(`=== FORM SUBMISSION FOR COLOR: ${color.name} ===`)
+        console.log(`Found ${colorImages.length} product images`)
+        console.log('Full array state:', color.images.map((img, idx) => 
+          `${idx}: ${img.file?.name || 'no file'} (Primary: ${img.isPrimary})`
+        ))
+        console.log('Filtered images to send:', colorImages.map((img, idx) => 
+          `${idx}: ${img.file?.name} (Primary: ${img.isPrimary})`
+        ))
+        
+        // Send product images in the exact order they appear in the form array
+        colorImages.forEach((img, arrayIndex) => {
+          if (img.file) {
+            console.log(`Adding product image ${arrayIndex} for:`, color.name, img.file.name)
+            formDataToSend.append(`images`, img.file)
+            formDataToSend.append(`imageData[${imageIndex}]`, JSON.stringify({
+              alt: img.alt || `${color.name} product image`,
+              isPrimary: img.isPrimary,
+              color: color.name,
+              isColorRepresentation: false,
+              formOrder: arrayIndex // Add form order for debugging
+            }))
+            imageIndex++
+          }
+        })
+        
+        // Add color representation image LAST
         if (color.colorImage && color.colorImage.file) {
           console.log('Adding color representation image for:', color.name)
           formDataToSend.append(`images`, color.colorImage.file)
@@ -420,32 +455,6 @@ const AdminNewProductClient = () => {
             isColorRepresentation: true
           }))
           imageIndex++
-        }
-        
-        // Add product images for this color
-        const colorImages = color.images.filter(img => img.file)
-        console.log(`Found ${colorImages.length} product images for color: ${color.name}`)
-        
-        for (const img of colorImages) {
-          if (img.file) {
-            // Skip if this image is the same as the color representation image
-            if (color.colorImage && color.colorImage.file && 
-                img.file.name === color.colorImage.file.name && 
-                img.file.size === color.colorImage.file.size) {
-              console.log('Skipping duplicate image:', img.alt)
-              continue
-            }
-            
-            console.log('Adding product image for:', color.name)
-            formDataToSend.append(`images`, img.file)
-            formDataToSend.append(`imageData[${imageIndex}]`, JSON.stringify({
-              alt: img.alt || `${color.name} product image`,
-              isPrimary: img.isPrimary,
-              color: color.name,
-              isColorRepresentation: false
-            }))
-            imageIndex++
-          }
         }
       }
       
