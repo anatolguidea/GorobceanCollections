@@ -153,7 +153,10 @@ const AdminNewProductClient = () => {
   const addColorImage = (colorIndex: number) => {
     setFormData(prev => {
       const newColors = [...prev.colors]
-      newColors[colorIndex].images.push({ file: null, alt: '', isPrimary: false, preview: '' })
+      newColors[colorIndex] = {
+        ...newColors[colorIndex],
+        images: [...newColors[colorIndex].images, { file: null, alt: '', isPrimary: false, preview: '' }]
+      }
       return { ...prev, colors: newColors }
     })
   }
@@ -728,20 +731,25 @@ const AdminNewProductClient = () => {
                         {/* Image Controls */}
                         <div className="flex-1 space-y-3">
                           <div className="flex items-center gap-3">
-                            <input
-                              key={`product-image-${formData.currentColorIndex}-${imageIndex}`}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                  handleColorImageUpload(formData.currentColorIndex, imageIndex, file)
-                                  // Reset the input
-                                  e.target.value = ''
-                                }
-                              }}
-                              className="flex-1 border border-gray-300 px-3 py-2 rounded-md text-sm"
-                            />
+                            <div className="flex-1">
+                              <input
+                                key={`product-image-${formData.currentColorIndex}-${imageIndex}`}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    handleColorImageUpload(formData.currentColorIndex, imageIndex, file)
+                                  }
+                                }}
+                                className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm"
+                              />
+                              {image.file && (
+                                <p className="text-xs text-green-600 mt-1">
+                                  ✓ Selected: {image.file.name}
+                                </p>
+                              )}
+                            </div>
                             <button
                               type="button"
                               onClick={() => setPrimaryColorImage(formData.currentColorIndex, imageIndex)}
@@ -788,11 +796,7 @@ const AdminNewProductClient = () => {
                   
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      addColorImage(formData.currentColorIndex)
-                    }}
+                    onClick={() => addColorImage(formData.currentColorIndex)}
                     className="flex items-center gap-2 text-black hover:text-gray-700 transition-colors border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
                   >
                     <Plus className="w-4 h-4" />
@@ -905,12 +909,15 @@ const AdminNewProductClient = () => {
                               const file = e.target.files?.[0]
                               if (file) {
                                 handleColorRepresentationUpload(index, file)
-                                // Reset the input
-                                e.target.value = ''
                               }
                             }}
                             className="w-full border border-gray-300 px-3 py-2 rounded-md text-sm"
                           />
+                          {color.colorImage?.file && (
+                            <p className="text-xs text-green-600 mt-1">
+                              ✓ Selected: {color.colorImage.file.name}
+                            </p>
+                          )}
                           <p className="text-xs text-gray-500 mt-1">
                             This image will be used as the color thumbnail in the product detail page
                           </p>

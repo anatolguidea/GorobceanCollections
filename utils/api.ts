@@ -191,6 +191,9 @@ export const api = {
     getAll: () => apiClient.get('/api/categories'),
     getById: (id: string) => apiClient.get(`/api/categories/${id}`),
     getBySlug: (slug: string) => apiClient.get(`/api/categories/slug/${slug}`),
+    create: (data: any) => apiClient.post('/api/categories', data),
+    update: (id: string, data: any) => apiClient.put(`/api/categories/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/api/categories/${id}`),
   },
 
   // Cart endpoints
@@ -224,6 +227,11 @@ export const api = {
     updateNotesAdmin: (id: string, data: { adminNotes: string }) =>
       apiClient.put(`/api/orders/admin/${id}/notes`, data),
     getCount: () => apiClient.get('/api/orders/count'),
+    getRecentActivity: (limit?: number) => {
+      const queryString = limit ? `?limit=${limit}` : '';
+      return apiClient.get(`/api/orders/admin/recent-activity${queryString}`);
+    },
+    getAnalytics: () => apiClient.get('/api/orders/admin/analytics'),
   },
 
   // User endpoints

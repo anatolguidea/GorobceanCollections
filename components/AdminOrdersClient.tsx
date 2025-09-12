@@ -17,7 +17,7 @@ import {
   Truck,
   Clock
 } from 'lucide-react'
-import { getImageUrl } from '../utils/imageUtils'
+import { getImageUrl, getMainImageForColor } from '../utils/imageUtils'
 import { api } from '../utils/api'
 
 interface Order {
@@ -38,7 +38,14 @@ interface Order {
     product: {
       name: string
       price: number
-      images: Array<{ url: string }>
+      images: Array<{ 
+        url: string
+        alt?: string
+        isPrimary?: boolean
+        publicId?: string
+        color?: string | null
+        isColorRepresentation?: boolean
+      }>
     }
     quantity: number
     size: string
@@ -476,17 +483,23 @@ const AdminOrdersClient = () => {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                                {item.product.images && item.product.images[0] ? (
-                                  <img 
-                                    src={getImageUrl(item.product.images[0].url)} 
-                                    alt={item.product.name}
-                                    className="w-full h-full object-cover rounded-lg"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none'
-                                      e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                                    }}
-                                  />
-                                ) : null}
+                                {(() => {
+                                  const colorImage = getMainImageForColor(item.product, item.color)
+                                  const imageUrl = colorImage?.url || item.product.images?.[0]?.url
+                                  const imageAlt = colorImage?.alt || item.product.images?.[0]?.alt || item.product.name
+                                  
+                                  return imageUrl ? (
+                                    <img 
+                                      src={getImageUrl(imageUrl)} 
+                                      alt={imageAlt}
+                                      className="w-full h-full object-cover rounded-lg"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none'
+                                        e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                                      }}
+                                    />
+                                  ) : null
+                                })()}
                                 <Package className={`w-6 h-6 text-gray-400 ${item.product.images && item.product.images[0] ? 'hidden' : ''}`} />
                               </div>
                               <div>

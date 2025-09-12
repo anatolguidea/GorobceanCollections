@@ -22,6 +22,25 @@ interface DashboardStats {
   recentProducts: any[]
 }
 
+interface RecentActivity {
+  id: string
+  type: string
+  title: string
+  description: string
+  amount: number
+  status: string
+  createdAt: string
+  user: any
+}
+
+interface Analytics {
+  monthlyGrowth: number
+  newCustomers: number
+  conversionRate: number
+  currentMonthRevenue: number
+  lastMonthRevenue: number
+}
+
 const AdminDashboardClient = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
@@ -29,6 +48,14 @@ const AdminDashboardClient = () => {
     totalOrders: 0,
     totalRevenue: 0,
     recentProducts: []
+  })
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [analytics, setAnalytics] = useState<Analytics>({
+    monthlyGrowth: 0,
+    newCustomers: 0,
+    conversionRate: 0,
+    currentMonthRevenue: 0,
+    lastMonthRevenue: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -46,17 +73,28 @@ const AdminDashboardClient = () => {
 
       console.log('Fetching dashboard stats...')
 
-      // Fetch products count
-      const productsResponse = await api.products.getAll({ limit: 100 })
-      console.log('Products response:', productsResponse)
-      
-      // Fetch users count
-      const usersResponse = await api.users.getCount()
-      console.log('Users count response:', usersResponse)
-      
-      // Fetch orders count and revenue
-      const ordersResponse = await api.orders.getCount()
-      console.log('Orders count response:', ordersResponse)
+      // Fetch all dashboard data in parallel
+      const [
+        productsResponse,
+        usersResponse,
+        ordersResponse,
+        recentActivityResponse,
+        analyticsResponse
+      ] = await Promise.all([
+        api.products.getAll({ limit: 100 }),
+        api.users.getCount(),
+        api.orders.getCount(),
+        api.orders.getRecentActivity(3),
+        api.orders.getAnalytics()
+      ])
+
+      console.log('All responses:', {
+        products: productsResponse,
+        users: usersResponse,
+        orders: ordersResponse,
+        recentActivity: recentActivityResponse,
+        analytics: analyticsResponse
+      })
 
       const newStats = {
         totalProducts: productsResponse.data?.data?.pagination?.totalProducts || productsResponse.data?.data?.products?.length || 0,
@@ -66,8 +104,15 @@ const AdminDashboardClient = () => {
         recentProducts: productsResponse.data?.data?.products?.slice(0, 5) || []
       }
 
-      console.log('Dashboard stats:', newStats)
       setStats(newStats)
+      setRecentActivity(recentActivityResponse.data?.data || [])
+      setAnalytics(analyticsResponse.data?.data || {
+        monthlyGrowth: 0,
+        newCustomers: 0,
+        conversionRate: 0,
+        currentMonthRevenue: 0,
+        lastMonthRevenue: 0
+      })
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
     } finally {
@@ -196,18 +241,24 @@ const AdminDashboardClient = () => {
         >
           <h2 className="text-xl font-medium text-black mb-4 tracking-wide">Recent Activity</h2>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50">
-              <span className="text-sm text-gray-600">New order received</span>
-              <span className="text-xs text-gray-500">2 min ago</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50">
-              <span className="text-sm text-gray-600">Product updated</span>
-              <span className="text-xs text-gray-500">1 hour ago</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50">
-              <span className="text-sm text-gray-600">New user registered</span>
-              <span className="text-xs text-gray-500">3 hours ago</span>
-            </div>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50">
+                  <div className="flex-1">
+                    <span className="text-sm text-gray-600">{activity.title}</span>
+                    <p className="text-xs text-gray-500 mt-1">{activity.description}</p>
+                    <p className="text-xs text-green-600 font-medium">${activity.amount.toFixed(2)}</p>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {new Date(activity.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500 text-sm">No recent activity</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
@@ -300,17 +351,31 @@ const AdminDashboardClient = () => {
           <div className="text-center p-4 bg-gray-50">
             <TrendingUp className="w-8 h-8 text-black mx-auto mb-2" />
             <p className="text-sm text-gray-600 mb-1">Monthly Growth</p>
-            <p className="text-2xl font-bold text-black">+12.5%</p>
+            <p className={`text-2xl font-bold ${analytics.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {analytics.monthlyGrowth >= 0 ? '+' : ''}{analytics.monthlyGrowth}%
+            </p>
           </div>
           <div className="text-center p-4 bg-gray-50">
             <Users className="w-8 h-8 text-black mx-auto mb-2" />
             <p className="text-sm text-gray-600 mb-1">New Customers</p>
-            <p className="text-2xl font-bold text-black">+24</p>
+            <p className="text-2xl font-bold text-black">+{analytics.newCustomers}</p>
           </div>
           <div className="text-center p-4 bg-gray-50">
             <ShoppingCart className="w-8 h-8 text-black mx-auto mb-2" />
             <p className="text-sm text-gray-600 mb-1">Conversion Rate</p>
-            <p className="text-2xl font-bold text-black">3.2%</p>
+            <p className="text-2xl font-bold text-black">{analytics.conversionRate}%</p>
+          </div>
+        </div>
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="text-center p-4 bg-gray-50">
+            <DollarSign className="w-8 h-8 text-black mx-auto mb-2" />
+            <p className="text-sm text-gray-600 mb-1">This Month Revenue</p>
+            <p className="text-2xl font-bold text-black">${analytics.currentMonthRevenue.toFixed(2)}</p>
+          </div>
+          <div className="text-center p-4 bg-gray-50">
+            <DollarSign className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600 mb-1">Last Month Revenue</p>
+            <p className="text-2xl font-bold text-gray-600">${analytics.lastMonthRevenue.toFixed(2)}</p>
           </div>
         </div>
       </motion.div>

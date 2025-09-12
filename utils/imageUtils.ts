@@ -134,3 +134,37 @@ export const loadImageWithFallback = (
   
   return imageUrl
 }
+
+// Helper function to get the main image for a specific color
+export const getMainImageForColor = (product: any, colorName: string) => {
+  if (!product || !product.images || product.images.length === 0) {
+    return null
+  }
+
+  // First try to find color-specific images (excluding color representation images)
+  const colorImages = product.images.filter((img: any) => 
+    img.color === colorName && 
+    img.isColorRepresentation !== true
+  )
+  
+  if (colorImages.length > 0) {
+    // Return the first image for this color (maintains original order)
+    // If there's a primary image, prioritize it, otherwise return first
+    const primaryImage = colorImages.find((img: any) => img.isPrimary)
+    return primaryImage || colorImages[0]
+  }
+  
+  // If no color-specific images, return general images (color: null or undefined)
+  const generalImages = product.images.filter((img: any) => 
+    (img.color === null || img.color === undefined) && 
+    img.isColorRepresentation !== true
+  )
+  
+  if (generalImages.length > 0) {
+    const primaryImage = generalImages.find((img: any) => img.isPrimary)
+    return primaryImage || generalImages[0]
+  }
+  
+  // Fallback to any image
+  return product.images[0]
+}

@@ -4,6 +4,119 @@ const { auth } = require('../middleware/auth');
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 
+// Get recent activity for admin dashboard
+router.get('/admin/recent-activity', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.role || req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin only.'
+      });
+    }
+
+    const { limit = 10 } = req.query;
+
+    // Get recent orders
+    const recentOrders = await Order.find({})
+      .populate('user', 'firstName lastName email')
+      .populate('items.product', 'name images')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    // Format recent activity
+    const activities = recentOrders.map(order => ({
+      id: order._id,
+      type: 'order',
+      title: 'New order received',
+      description: `Order #${order.orderNumber} from ${order.customerDetails.firstName} ${order.customerDetails.lastName}`,
+      amount: order.total,
+      status: order.status,
+      createdAt: order.createdAt,
+      user: order.user
+    }));
+
+    res.json({
+      success: true,
+      data: activities
+    });
+  } catch (error) {
+    console.error('Error fetching recent activity:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent activity',
+      error: error.message
+    });
+  }
+});
+
+// Get analytics data for admin dashboard
+router.get('/admin/analytics', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.role || req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin only.'
+      });
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // Current month orders
+    const currentMonthOrders = await Order.find({
+      createdAt: { $gte: startOfMonth }
+    });
+
+    // Last month orders
+    const lastMonthOrders = await Order.find({
+      createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
+    });
+
+    // Calculate metrics
+    const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => sum + order.total, 0);
+    const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + order.total, 0);
+    
+    const monthlyGrowth = lastMonthRevenue > 0 
+      ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue * 100)
+      : 0;
+
+    // New customers this month
+    const newCustomersThisMonth = await Order.aggregate([
+      { $match: { createdAt: { $gte: startOfMonth } } },
+      { $group: { _id: '$user' } },
+      { $count: 'count' }
+    ]);
+
+    // Conversion rate (orders per unique visitor - simplified)
+    const totalOrders = await Order.countDocuments();
+    const conversionRate = totalOrders > 0 ? (totalOrders / Math.max(totalOrders * 2, 100)) * 100 : 0;
+
+    const analytics = {
+      monthlyGrowth: Math.round(monthlyGrowth * 10) / 10,
+      newCustomers: newCustomersThisMonth.length > 0 ? newCustomersThisMonth[0].count : 0,
+      conversionRate: Math.round(conversionRate * 10) / 10,
+      currentMonthRevenue,
+      lastMonthRevenue
+    };
+
+    res.json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch analytics',
+      error: error.message
+    });
+  }
+});
+
 // Get orders count and revenue (Admin only)
 router.get('/count', auth, async (req, res) => {
   try {
