@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import CheckoutClient from '@/components/CheckoutClient'
@@ -14,7 +15,16 @@ export const metadata: Metadata = {
   },
 }
 
-export default function CheckoutPage() {
+interface CheckoutPageProps {
+  searchParams: { success?: string }
+}
+
+export default function CheckoutPage({ searchParams }: CheckoutPageProps) {
+  // If not a success page, redirect to cart
+  if (searchParams.success !== 'true') {
+    redirect('/cart')
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />

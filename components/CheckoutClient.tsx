@@ -64,12 +64,66 @@ const CheckoutClient = () => {
     billingCountry: 'USA'
   })
 
+  // Saved profile/address
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ type?: string; address: string; city: string; state: string; zipCode: string; country: string; isDefault?: boolean }>>([])
+  const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null)
+
   // Check for success parameter
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setIsSuccess(true)
     }
   }, [searchParams])
+
+  // Load user profile to prefill name/email and saved addresses
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setProfileLoading(true)
+        const res: any = await api.auth.getProfile()
+        // Backend returns { success, data: user }
+        const user = (res && (res.data?.data ?? res.data)) || null
+        if (user) {
+          setFormData(prev => ({
+            ...prev,
+            firstName: user.firstName || prev.firstName,
+            lastName: user.lastName || prev.lastName,
+            email: user.email || prev.email,
+          }))
+          const addresses = Array.isArray(user.addresses) ? user.addresses : []
+          setSavedAddresses(addresses)
+          if (addresses.length > 0) {
+            const defIdx = addresses.findIndex((a: any) => a.isDefault)
+            const pickedIdx = defIdx >= 0 ? defIdx : 0
+            setSelectedSavedIndex(pickedIdx)
+            const addr = addresses[pickedIdx]
+            if (addr?.address) {
+              setFormData(prev => ({
+                ...prev,
+                address: addr.address,
+                city: addr.city || '',
+                state: addr.state || '',
+                zipCode: addr.zipCode || '',
+                country: addr.country || prev.country,
+                sameAsShipping: true,
+                billingAddress: addr.address,
+                billingCity: addr.city || '',
+                billingState: addr.state || '',
+                billingZipCode: addr.zipCode || '',
+                billingCountry: addr.country || prev.country,
+              }))
+            }
+          }
+        }
+      } catch (e) {
+        // Silent fail – checkout works without profile
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+    loadProfile()
+  }, [])
 
   // Mock cart data
   const cartItems = [
@@ -352,6 +406,60 @@ const CheckoutClient = () => {
                     <Truck className="w-6 h-6" />
                     Shipping Information
                   </h2>
+                  {savedAddresses.length > 0 && (
+                    <div className="mb-6 border border-gray-200 p-4 bg-gray-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-gray-700">Use a saved address</span>
+                        {profileLoading && <span className="text-xs text-gray-400">Loading…</span>}
+                      </div>
+                      <div className="space-y-2">
+                        {savedAddresses.map((addr, idx) => (
+                          <label key={idx} className="flex items-start gap-3 text-sm text-gray-800">
+                            <input
+                              type="radio"
+                              name="savedAddress"
+                              checked={selectedSavedIndex === idx}
+                              onChange={() => setSelectedSavedIndex(idx)}
+                              className="mt-1"
+                            />
+                            <span>
+                              {addr.address}
+                              <br />
+                              {addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.zipCode} • {addr.country}
+                              {addr.isDefault && <span className="ml-2 text-xs text-white bg-black px-2 py-0.5">Default</span>}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedSavedIndex == null) return
+                            const addr = savedAddresses[selectedSavedIndex]
+                            if (!addr) return
+                            setFormData(prev => ({
+                              ...prev,
+                              address: addr.address,
+                              city: addr.city || '',
+                              state: addr.state || '',
+                              zipCode: addr.zipCode || '',
+                              country: addr.country || prev.country,
+                              sameAsShipping: true,
+                              billingAddress: addr.address,
+                              billingCity: addr.city || '',
+                              billingState: addr.state || '',
+                              billingZipCode: addr.zipCode || '',
+                              billingCountry: addr.country || prev.country,
+                            }))
+                          }}
+                          className="px-4 py-2 border border-gray-300 hover:bg-white bg-white text-gray-800"
+                        >
+                          Use Selected Address
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

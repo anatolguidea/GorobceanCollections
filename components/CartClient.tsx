@@ -81,6 +81,11 @@ const CartClient = () => {
   })
   const [submittingOrder, setSubmittingOrder] = useState(false)
 
+  // Saved addresses support inside cart modal
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ type?: string; address: string; city: string; state: string; zipCode: string; country: string; isDefault?: boolean }>>([])
+  const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null)
+
   // Helper function to get the main image for a specific color
   const getMainImageForColor = (product: CartItem['product'], colorName: string) => {
     if (!product || !product.images || product.images.length === 0) {
@@ -215,6 +220,37 @@ const CartClient = () => {
       setError('Please log in to view your cart')
     }
   }, [])
+
+  // Load saved addresses when opening the customer form
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setProfileLoading(true)
+        const res: any = await api.auth.getProfile()
+        const user = (res && (res.data?.data ?? res.data)) || null
+        if (user) {
+          setCustomerForm(prev => ({
+            ...prev,
+            firstName: user.firstName || prev.firstName,
+            lastName: user.lastName || prev.lastName,
+            email: user.email || prev.email,
+          }))
+          const addresses = Array.isArray(user.addresses) ? user.addresses : []
+          setSavedAddresses(addresses)
+          if (addresses.length > 0) {
+            const defIdx = addresses.findIndex((a: any) => a.isDefault)
+            const idx = defIdx >= 0 ? defIdx : 0
+            setSelectedSavedIndex(idx)
+          }
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+    if (showCustomerForm) loadProfile()
+  }, [showCustomerForm])
 
   // Note: Cart updates are handled locally in updateQuantity and removeItem functions
   // No need to listen for external cart update events on the cart page
@@ -611,6 +647,55 @@ const CartClient = () => {
               </div>
 
               <div className="space-y-4">
+                {savedAddresses.length > 0 && (
+                  <div className="border border-gray-200 p-3 bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-700">Use a saved address</span>
+                      {profileLoading && <span className="text-xs text-gray-400">Loading…</span>}
+                    </div>
+                    <div className="space-y-2">
+                      {savedAddresses.map((addr, idx) => (
+                        <label key={idx} className="flex items-start gap-3 text-sm text-gray-800">
+                          <input
+                            type="radio"
+                            name="savedAddressModal"
+                            checked={selectedSavedIndex === idx}
+                            onChange={() => setSelectedSavedIndex(idx)}
+                            className="mt-1"
+                          />
+                          <span>
+                            {addr.address}
+                            <br />
+                            {addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.zipCode} • {addr.country}
+                            {addr.isDefault && <span className="ml-2 text-xs text-white bg-black px-2 py-0.5">Default</span>}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedSavedIndex == null) return
+                          const addr = savedAddresses[selectedSavedIndex]
+                          if (!addr) return
+                          setCustomerForm(prev => ({
+                            ...prev,
+                            phone: addr.phone || prev.phone,
+                            address: addr.address,
+                            city: addr.city || '',
+                            state: addr.state || '',
+                            zipCode: addr.zipCode || '',
+                            country: addr.country || prev.country,
+                          }))
+                        }}
+                        className="px-4 py-2 border border-gray-300 bg-white hover:bg-gray-100 text-gray-800"
+                      >
+                        Use Selected Address
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-black mb-2">First Name</label>

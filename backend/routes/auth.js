@@ -175,7 +175,8 @@ router.get('/me', auth, async (req, res) => {
 router.put('/profile', [
   body('firstName').optional().notEmpty().withMessage('First name cannot be empty'),
   body('lastName').optional().notEmpty().withMessage('Last name cannot be empty'),
-  body('email').optional().isEmail().withMessage('Valid email is required')
+  body('email').optional().isEmail().withMessage('Valid email is required'),
+  body('addresses').optional().isArray().withMessage('Addresses must be an array')
 ], async (req, res) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -206,11 +207,49 @@ router.put('/profile', [
       });
     }
 
-    // Update user
+    // Update user basic fields
     user.firstName = req.body.firstName || user.firstName;
     user.lastName = req.body.lastName || user.lastName;
     user.email = req.body.email || user.email;
     user.updatedAt = new Date();
+
+    // Optionally update addresses
+    if (Array.isArray(req.body.addresses)) {
+      const allowedTypes = ['home', 'work', 'other']
+      const sanitized = []
+      for (const addr of req.body.addresses) {
+        const item = {
+          type: allowedTypes.includes((addr?.type || '').toLowerCase()) ? (addr.type || 'home') : 'other',
+          phone: addr?.phone,
+          address: addr?.address,
+          city: addr?.city,
+          state: addr?.state,
+          zipCode: addr?.zipCode,
+          country: addr?.country || 'USA',
+          isDefault: Boolean(addr?.isDefault)
+        }
+        // Validate required fields
+        if (!item.address || !item.city || !item.state || !item.zipCode || !item.country) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid address: address, city, state, zipCode, and country are required'
+          })
+        }
+        sanitized.push(item)
+      }
+      // Ensure one default
+      if (!sanitized.some(a => a.isDefault) && sanitized.length > 0) {
+        sanitized[0].isDefault = true
+      } else if (sanitized.filter(a => a.isDefault).length > 1) {
+        // If multiple defaults sent, keep the first one as default
+        let found = false
+        for (const a of sanitized) {
+          if (a.isDefault && !found) { found = true; continue }
+          a.isDefault = false
+        }
+      }
+      user.addresses = sanitized
+    }
 
     await user.save();
 

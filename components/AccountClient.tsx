@@ -22,12 +22,28 @@ interface User {
   phone?: string
   addresses?: Array<{
     type: string
+    phone?: string
     address: string
     city: string
     state: string
     zipCode: string
     country: string
+    isDefault?: boolean
   }>
+}
+
+interface OrderItem {
+  product: { name: string }
+  quantity: number
+  price?: number
+}
+
+interface Order {
+  _id: string
+  createdAt: string
+  status: string
+  total?: number
+  items?: OrderItem[]
 }
 
 const AccountClient = () => {
@@ -53,6 +69,26 @@ const AccountClient = () => {
   })
 
   const [user, setUser] = useState<User | null>(null)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [ordersError, setOrdersError] = useState<string | null>(null)
+
+  // Editable profile fields
+  const [editFirstName, setEditFirstName] = useState('')
+  const [editLastName, setEditLastName] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  // Address form
+  const [newAddress, setNewAddress] = useState({
+    type: 'home',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: ''
+  })
+  const [savingAddress, setSavingAddress] = useState(false)
 
   // Check if user is already logged in
   useEffect(() => {
@@ -71,6 +107,8 @@ const AccountClient = () => {
       if (response.success && response.data && response.data.success && response.data.data) {
         setUser(response.data.data)
         setIsLoggedIn(true)
+        setEditFirstName(response.data.data.firstName || '')
+        setEditLastName(response.data.data.lastName || '')
         console.log('AccountClient: User authenticated successfully:', response.data.data)
       } else {
         console.log('AccountClient: Invalid response, removing token')
@@ -80,6 +118,127 @@ const AccountClient = () => {
     } catch (error) {
       console.error('AccountClient: Error checking auth status:', error)
       localStorage.removeItem('token')
+    }
+  }
+
+  // Fetch orders when logged in or switching to orders tab
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!isLoggedIn) return
+      setOrdersLoading(true)
+      setOrdersError(null)
+      try {
+        const response: any = await api.orders.getMine()
+        if (response?.success && Array.isArray(response?.data?.data)) {
+          setOrders(response.data.data)
+        } else if (Array.isArray(response)) {
+          setOrders(response as unknown as Order[])
+        } else {
+          setOrders([])
+        }
+      } catch (err: any) {
+        setOrdersError(err?.message || 'Failed to load orders')
+        setOrders([])
+      } finally {
+        setOrdersLoading(false)
+      }
+    }
+    if (activeTab === 'orders') {
+      fetchOrders()
+    }
+  }, [activeTab, isLoggedIn])
+
+  const saveProfile = async () => {
+    if (!user) return
+    setSavingProfile(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const response: any = await api.auth.updateProfile({ firstName: editFirstName, lastName: editLastName })
+      if (response?.success) {
+        const updated = { ...user, firstName: editFirstName, lastName: editLastName }
+        setUser(updated)
+        localStorage.setItem('user', JSON.stringify(updated))
+        setSuccess('Profile updated successfully')
+      } else {
+        setError(response?.message || 'Failed to update profile')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to update profile')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  const addAddress = async () => {
+    if (!user) return
+    // Basic validation
+    if (!newAddress.address || !newAddress.city || !newAddress.state || !newAddress.zipCode || !newAddress.country) {
+      setError('Please fill address, city, state, ZIP code, and country')
+      return
+    }
+    setSavingAddress(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const updatedAddresses = [...(user.addresses || []), newAddress]
+      const response: any = await api.auth.updateProfile({ addresses: updatedAddresses })
+      if (response?.success) {
+        const updated = { ...user, addresses: updatedAddresses }
+        setUser(updated)
+        setNewAddress({ type: 'home', phone: '', address: '', city: '', state: '', zipCode: '', country: '' })
+        setSuccess('Address added')
+      } else {
+        setError(response?.message || 'Failed to add address')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to add address')
+    } finally {
+      setSavingAddress(false)
+    }
+  }
+
+  const removeAddress = async (index: number) => {
+    if (!user || !user.addresses) return
+    setSavingAddress(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const updatedAddresses = user.addresses.filter((_, i) => i !== index)
+      const response: any = await api.auth.updateProfile({ addresses: updatedAddresses })
+      if (response?.success) {
+        const updated = { ...user, addresses: updatedAddresses }
+        setUser(updated)
+        setSuccess('Address removed')
+      } else {
+        setError(response?.message || 'Failed to remove address')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to remove address')
+    } finally {
+      setSavingAddress(false)
+    }
+  }
+
+  const setDefaultAddress = async (index: number) => {
+    if (!user || !user.addresses) return
+    setSavingAddress(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const updated = user.addresses.map((a, i) => ({ ...a, isDefault: i === index }))
+      const response: any = await api.auth.updateProfile({ addresses: updated })
+      if (response?.success) {
+        const updatedUser = { ...user, addresses: updated }
+        setUser(updatedUser)
+        setSuccess('Default address set')
+      } else {
+        setError(response?.message || 'Failed to set default address')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to set default address')
+    } finally {
+      setSavingAddress(false)
     }
   }
 
@@ -247,18 +406,18 @@ const AccountClient = () => {
                         <label className="block text-sm font-medium text-black mb-2">First Name</label>
                         <input
                           type="text"
-                          value={user.firstName}
+                          value={editFirstName}
+                          onChange={(e) => setEditFirstName(e.target.value)}
                           className="w-full px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black transition-all duration-200"
-                          readOnly
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-black mb-2">Last Name</label>
                         <input
                           type="text"
-                          value={user.lastName}
+                          value={editLastName}
+                          onChange={(e) => setEditLastName(e.target.value)}
                           className="w-full px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black transition-all duration-200"
-                          readOnly
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -269,6 +428,15 @@ const AccountClient = () => {
                           className="w-full px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black transition-all duration-200"
                           readOnly
                         />
+                      </div>
+                      <div className="md:col-span-2">
+                        <button
+                          onClick={saveProfile}
+                          disabled={savingProfile}
+                          className="mt-2 px-5 py-3 bg-black text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+                        >
+                          {savingProfile ? 'Saving...' : 'Save Changes'}
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -282,11 +450,44 @@ const AccountClient = () => {
                     transition={{ duration: 0.3 }}
                   >
                     <h2 className="text-2xl font-medium text-black mb-6 tracking-wide">Order History</h2>
-                    <div className="text-center py-12">
-                      <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 font-light">No orders yet</p>
-                      <p className="text-sm text-gray-400 mt-2">Start shopping to see your orders here</p>
-                    </div>
+                    {ordersLoading ? (
+                      <div className="text-center py-12">
+                        <div className="mx-auto h-6 w-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+                      </div>
+                    ) : ordersError ? (
+                      <div className="text-center py-12 text-red-600">{ordersError}</div>
+                    ) : orders.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500 font-light">No orders yet</p>
+                        <p className="text-sm text-gray-400 mt-2">Start shopping to see your orders here</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {orders.map((order) => (
+                          <div key={order._id} className="border border-gray-200 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                              <div className="text-sm text-gray-600">Order #{order._id.slice(-6)}</div>
+                              <div className="text-sm text-gray-600">{new Date(order.createdAt).toLocaleString()}</div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-gray-800">Status: <span className="font-medium">{order.status}</span></div>
+                              <div className="text-sm text-gray-800">Total: <span className="font-medium">{order.total ? `€${order.total.toFixed(2)}` : '-'}</span></div>
+                            </div>
+                            {Array.isArray(order.items) && order.items.length > 0 && (
+                              <ul className="mt-3 text-sm text-gray-700 list-disc list-inside">
+                                {order.items.slice(0, 4).map((it, idx) => (
+                                  <li key={idx}>{it.product?.name || 'Item'} x{it.quantity}</li>
+                                ))}
+                                {order.items.length > 4 && (
+                                  <li className="text-gray-500">and {order.items.length - 4} more…</li>
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
@@ -299,10 +500,82 @@ const AccountClient = () => {
                     transition={{ duration: 0.3 }}
                   >
                     <h2 className="text-2xl font-medium text-black mb-6 tracking-wide">Saved Addresses</h2>
-                    <div className="text-center py-12">
-                      <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 font-light">No addresses saved</p>
-                      <p className="text-sm text-gray-400 mt-2">Add addresses for faster checkout</p>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(user.addresses || []).map((addr, index) => (
+                          <div key={index} className="border border-gray-200 p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm uppercase tracking-wide text-gray-500">{addr.type || 'home'}</span>
+                              {addr.isDefault ? (
+                                <span className="text-xs bg-black text-white px-2 py-1">Default</span>
+                              ) : (
+                                <button onClick={() => setDefaultAddress(index)} disabled={savingAddress} className="text-xs underline">Set default</button>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-800 whitespace-pre-line">
+                              {addr.address}\n{addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.zipCode}\n{addr.country}{addr.phone ? `\n${addr.phone}` : ''}
+                            </div>
+                            <div className="mt-3 flex gap-3">
+                              <button onClick={() => removeAddress(index)} disabled={savingAddress} className="text-sm text-red-600">Remove</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="border border-gray-200 p-4">
+                        <h3 className="font-medium text-black mb-3">Add New Address</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <input
+                            type="tel"
+                            placeholder="Phone"
+                            value={newAddress.phone}
+                            onChange={(e) => setNewAddress(prev => ({ ...prev, phone: e.target.value }))}
+                            className="px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black md:col-span-2"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Street address"
+                            value={newAddress.address}
+                            onChange={(e) => setNewAddress(prev => ({ ...prev, address: e.target.value }))}
+                            className="px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black"
+                          />
+                          <input
+                            type="text"
+                            placeholder="City"
+                            value={newAddress.city}
+                            onChange={(e) => setNewAddress(prev => ({ ...prev, city: e.target.value }))}
+                            className="px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black"
+                          />
+                          <input
+                            type="text"
+                            placeholder="State/Province"
+                            value={newAddress.state}
+                            onChange={(e) => setNewAddress(prev => ({ ...prev, state: e.target.value }))}
+                            className="px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black"
+                          />
+                          <input
+                            type="text"
+                            placeholder="ZIP / Postal Code"
+                            value={newAddress.zipCode}
+                            onChange={(e) => setNewAddress(prev => ({ ...prev, zipCode: e.target.value }))}
+                            className="px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Country"
+                            value={newAddress.country}
+                            onChange={(e) => setNewAddress(prev => ({ ...prev, country: e.target.value }))}
+                            className="px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-black focus:border-black md:col-span-2"
+                          />
+                        </div>
+                        <button
+                          onClick={addAddress}
+                          disabled={savingAddress}
+                          className="mt-4 px-5 py-3 bg-black text-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+                        >
+                          {savingAddress ? 'Saving...' : 'Add Address'}
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 )}

@@ -209,6 +209,7 @@ export const api = {
   // Order endpoints
   orders: {
     getAll: () => apiClient.get('/api/orders'),
+    getMine: () => apiClient.get('/api/orders/my-orders'),
     getById: (id: string) => apiClient.get(`/api/orders/${id}`),
     create: (data: any) => apiClient.post('/api/orders', data),
     updateStatus: (id: string, data: { status: string }) =>
