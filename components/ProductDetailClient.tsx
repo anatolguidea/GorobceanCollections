@@ -363,6 +363,55 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
     }
   }
 
+  // Share current product page
+  const handleShare = async () => {
+    if (!product) return
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    const title = product.name
+    const text = `Check out this product: ${product.name}`
+
+    try {
+      if (typeof navigator !== 'undefined' && (navigator as any).share) {
+        await (navigator as any).share({ title, text, url })
+        showNotification({
+          type: 'success',
+          title: 'Shared',
+          message: 'Thanks for sharing this product!',
+          duration: 2500
+        })
+        return
+      }
+
+      // Fallback: copy URL to clipboard
+      if (typeof navigator !== 'undefined' && navigator.clipboard && url) {
+        await navigator.clipboard.writeText(url)
+        showNotification({
+          type: 'success',
+          title: 'Link Copied',
+          message: 'Product link copied to clipboard.',
+          duration: 2500
+        })
+        return
+      }
+
+      // Last resort
+      showNotification({
+        type: 'warning',
+        title: 'Unable to Share',
+        message: 'Sharing is not supported on this device/browser.',
+        duration: 3000
+      })
+    } catch (error) {
+      console.error('Share failed:', error)
+      showNotification({
+        type: 'error',
+        title: 'Share Failed',
+        message: 'Could not share this product. Please try again.',
+        duration: 3000
+      })
+    }
+  }
+
 
   const getAvailableStock = () => {
     if (!product || !selectedSize || !selectedColor) return 0
@@ -734,7 +783,7 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
                   </>
                 )}
               </button>
-              <button className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <button onClick={handleShare} aria-label="Share product" className="w-16 h-16 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
                 <Share2 className="w-6 h-6 text-gray-600" />
               </button>
             </div>
