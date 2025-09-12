@@ -151,7 +151,7 @@ const FeaturedProducts = () => {
                       onError={(e) => {
                         console.error('Featured product image failed to load:', e.currentTarget.src)
                         console.error('Product:', product.name, 'Image URL:', bestImage?.url)
-                        e.currentTarget.src = '/images/products/fashion.webp'
+                        e.currentTarget.src = '/images/placeholder-product.svg'
                       }}
                       onLoad={(e) => {
                         console.log('Featured product image loaded successfully:', e.currentTarget.src)

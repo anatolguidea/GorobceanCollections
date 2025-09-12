@@ -193,7 +193,7 @@ const ImageUpload = ({ images, onImagesChange, maxImages = 5 }: ImageUploadProps
                     onError={(e) => {
                       console.error('❌ Image failed to load:', e.currentTarget.src)
                       console.error('Original URL:', image.url)
-                                              e.currentTarget.src = '/images/products/fashion.webp'
+                      e.currentTarget.src = '/images/placeholder-product.svg'
                     }}
                     onLoad={(e) => {
                       console.log('✅ Image loaded successfully:', e.currentTarget.src)

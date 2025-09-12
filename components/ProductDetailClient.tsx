@@ -95,6 +95,8 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
   const [addingToCart, setAddingToCart] = useState(false)
   const [showSizeGuide, setShowSizeGuide] = useState(false)
   const [stockWarning, setStockWarning] = useState(false)
+  const [mainImageReady, setMainImageReady] = useState(false)
+  const [preparedMainUrl, setPreparedMainUrl] = useState<string | null>(null)
 
   // Function to get images for a specific color
   const getImagesForColor = (colorName: string) => {
@@ -217,6 +219,35 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
 
     fetchProduct()
   }, [productId])
+
+  // Compute primary and main image URL early to keep hooks before any returns
+  const primaryImage = displayedImages.find(img => img.isPrimary) || displayedImages[0]
+  const mainRawUrl = displayedImages[activeImageIndex]?.url || primaryImage?.url
+
+  // Preload main image; render nothing until it's ready
+  useEffect(() => {
+    setMainImageReady(false)
+    if (!mainRawUrl) {
+      setPreparedMainUrl(null)
+      return
+    }
+    const url = getCloudinaryUrl(mainRawUrl, {
+      width: 800,
+      height: 1200,
+      quality: 'auto:best',
+      format: 'auto',
+      crop: 'limit'
+    })
+    setPreparedMainUrl(url)
+    const img = new window.Image()
+    img.onload = () => setMainImageReady(true)
+    img.onerror = () => setMainImageReady(false)
+    img.src = url
+    return () => {
+      img.onload = null
+      img.onerror = null
+    }
+  }, [mainRawUrl])
 
   // Keyboard navigation for images
   useEffect(() => {
@@ -359,7 +390,6 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
     )
   }
 
-  const primaryImage = displayedImages.find(img => img.isPrimary) || displayedImages[0]
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0
@@ -379,39 +409,37 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
               transition={{ duration: 0.6 }}
               className="mb-6"
             >
-              <div className="relative h-[750px] overflow-hidden">
-                <Image
-                  src={getCloudinaryUrl(displayedImages[activeImageIndex]?.url || primaryImage?.url, {
-                    width: 800,
-                    height: 1200,
-                    quality: 'auto:best',
-                    format: 'auto',
-                    crop: 'limit'
-                  })}
-                  alt={displayedImages[activeImageIndex]?.alt || primaryImage?.alt || product.name}
-                  width={800}
-                  height={1200}
-                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-full w-full object-contain"
-                  priority
-                  quality={95}
-                  placeholder="blur"
-                  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-                />
-                
+              <div className="relative h-[750px] overflow-hidden group">
+                {mainImageReady && preparedMainUrl ? (
+                  <Image
+                    key={preparedMainUrl}
+                    src={preparedMainUrl}
+                    alt={displayedImages[activeImageIndex]?.alt || primaryImage?.alt || product.name}
+                    width={800}
+                    height={1200}
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-full w-full object-contain"
+                    priority
+                    quality={95}
+                  />
+                ) : null}
                 {/* Navigation Arrows */}
                 {displayedImages.length > 1 && (
                   <>
                     <button
+                      type="button"
                       onClick={() => setActiveImageIndex(activeImageIndex > 0 ? activeImageIndex - 1 : displayedImages.length - 1)}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white border border-gray-200 rounded-full p-2 shadow-md hover:shadow-lg transition-all"
+                      aria-label="Previous image"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-10 transition-opacity duration-200 opacity-60 hover:opacity-100 group-hover:opacity-100 focus:outline-none"
                     >
-                      <ChevronUp className="w-5 h-5 text-gray-600 rotate-[-90deg]" />
+                      <ChevronUp className="w-7 h-7 text-gray-800 rotate-[-90deg] drop-shadow" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => setActiveImageIndex(activeImageIndex < displayedImages.length - 1 ? activeImageIndex + 1 : 0)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white border border-gray-200 rounded-full p-2 shadow-md hover:shadow-lg transition-all"
+                      aria-label="Next image"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-10 transition-opacity duration-200 opacity-60 hover:opacity-100 group-hover:opacity-100 focus:outline-none"
                     >
-                      <ChevronDown className="w-5 h-5 text-gray-600 rotate-[-90deg]" />
+                      <ChevronDown className="w-7 h-7 text-gray-800 rotate-[-90deg] drop-shadow" />
                     </button>
                   </>
                 )}

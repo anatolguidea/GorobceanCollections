@@ -5,9 +5,9 @@
 To use your stylish woman in pale yellow pantsuit image across all products:
 
 ### 1. Image Setup ✅ COMPLETED
-Your image is now set up at:
+Your test image reference is deprecated and replaced by neutral placeholder:
 ```
-public/images/products/fashion.webp
+public/images/placeholder-product.svg
 ```
 
 The system is configured to use this image for all products across the site.
@@ -38,6 +38,6 @@ When you're ready to use real product images again:
 3. Your backend images will work normally
 
 ---
-**Current Status**: ✅ All components updated to use the hero image
-**Next Step**: ✅ Image file added and configured
+**Current Status**: ✅ Components use a neutral placeholder for missing images
+**Next Step**: ✅ Remove any legacy test assets if present
 **Ready to Test**: 🚀 Start your development server and visit any page!

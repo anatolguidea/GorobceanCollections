@@ -1,7 +1,7 @@
 // Utility function to get the correct image URL
 export const getImageUrl = (imagePath: string): string => {
   if (!imagePath) {
-    return '/images/products/fashion.webp'
+    return '/images/placeholder-product.svg'
   }
   
   // If it's already a full URL (Cloudinary or other), return as is
@@ -53,7 +53,7 @@ export const getImageUrlForEnv = (imagePath: string): string => {
 
 // Function to check if image URL is valid
 export const isValidImageUrl = (url: string): boolean => {
-  return Boolean(url && url.length > 0 && url !== '/images/products/fashion.webp')
+  return Boolean(url && url.length > 0 && url !== '/images/placeholder-product.svg')
 }
 
 // Function to get optimized Cloudinary image URL
@@ -65,7 +65,7 @@ export const getCloudinaryUrl = (imagePath: string, options: {
   crop?: 'fill' | 'limit' | 'scale';
 } = {}): string => {
   if (!imagePath) {
-    return '/images/products/fashion.webp'
+    return '/images/placeholder-product.svg'
   }
   
   // If it's not a Cloudinary URL, return as is
@@ -123,7 +123,7 @@ export const loadImageWithFallback = (
     
     img.onerror = () => {
       console.error('❌ Image failed to load:', imageUrl)
-      const fallbackUrl = '/images/products/fashion.webp'
+      const fallbackUrl = '/images/placeholder-product.svg'
       console.log('🔄 Using fallback image:', fallbackUrl)
       onError?.(`Failed to load: ${imageUrl}`)
     }

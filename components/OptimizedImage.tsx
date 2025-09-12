@@ -35,7 +35,7 @@ const OptimizedImage = ({
   const [isLoading, setIsLoading] = useState(true)
   
   const imageUrl = getImageUrl(src)
-  const fallbackUrl = '/images/products/fashion.webp'
+  const fallbackUrl = '/images/placeholder-product.svg'
   
   const handleError = () => {
     console.error('❌ Image failed to load:', imageUrl)

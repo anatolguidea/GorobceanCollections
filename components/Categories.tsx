@@ -158,12 +158,12 @@ const Categories = () => {
                     {/* Category Image */}
                     <div className="relative h-[300px] overflow-hidden bg-gray-100">
                       <img
-                        src={category.image?.url || '/images/products/fashion.webp'}
+                        src={category.image?.url || '/images/placeholder-product.svg'}
                         alt={category.image?.alt || category.name}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         onError={(e) => {
                           console.error('Category image failed to load:', e.currentTarget.src)
-                          e.currentTarget.src = '/images/products/fashion.webp'
+                          e.currentTarget.src = '/images/placeholder-product.svg'
                         }}
                         crossOrigin="anonymous"
                       />

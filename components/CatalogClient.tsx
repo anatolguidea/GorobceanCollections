@@ -124,7 +124,7 @@ const CatalogClient = () => {
                     {/* Category Image */}
                     <div className="relative h-96 overflow-hidden">
                       <img
-                        src={category.image?.url || '/images/products/fashion.webp'}
+                        src={category.image?.url || '/images/placeholder-product.svg'}
                         alt={category.image?.alt || category.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
