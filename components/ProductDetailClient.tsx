@@ -95,8 +95,7 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
   const [addingToCart, setAddingToCart] = useState(false)
   const [showSizeGuide, setShowSizeGuide] = useState(false)
   const [stockWarning, setStockWarning] = useState(false)
-  const [mainImageReady, setMainImageReady] = useState(false)
-  const [preparedMainUrl, setPreparedMainUrl] = useState<string | null>(null)
+  const [displayedMainUrl, setDisplayedMainUrl] = useState<string | null>(null)
 
   // Function to get images for a specific color
   const getImagesForColor = (colorName: string) => {
@@ -224,30 +223,63 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
   const primaryImage = displayedImages.find(img => img.isPrimary) || displayedImages[0]
   const mainRawUrl = displayedImages[activeImageIndex]?.url || primaryImage?.url
 
-  // Preload main image; render nothing until it's ready
+  // Helper to preload an image URL
+  const preloadImage = (url: string, onload?: () => void) => {
+    const img = new window.Image()
+    img.onload = () => { onload && onload() }
+    img.onerror = () => {}
+    img.src = url
+    return img
+  }
+
+  // Prepare and swap main image instantly when ready; keep previous visible until then
   useEffect(() => {
-    setMainImageReady(false)
     if (!mainRawUrl) {
-      setPreparedMainUrl(null)
+      setDisplayedMainUrl(null)
       return
     }
-    const url = getCloudinaryUrl(mainRawUrl, {
+    const nextUrl = getCloudinaryUrl(mainRawUrl, {
       width: 800,
       height: 1200,
       quality: 'auto:best',
       format: 'auto',
       crop: 'limit'
     })
-    setPreparedMainUrl(url)
-    const img = new window.Image()
-    img.onload = () => setMainImageReady(true)
-    img.onerror = () => setMainImageReady(false)
-    img.src = url
-    return () => {
-      img.onload = null
-      img.onerror = null
-    }
+    preloadImage(nextUrl, () => {
+      setDisplayedMainUrl(nextUrl)
+    })
   }, [mainRawUrl])
+
+  // Preload neighboring images (previous and next) for instant-feel navigation
+  useEffect(() => {
+    if (!displayedImages || displayedImages.length === 0) return
+    const total = displayedImages.length
+    if (total <= 1) return
+    const prevIndex = activeImageIndex > 0 ? activeImageIndex - 1 : total - 1
+    const nextIndex = activeImageIndex < total - 1 ? activeImageIndex + 1 : 0
+    const urlsToPreload: string[] = []
+    const prevRaw = displayedImages[prevIndex]?.url
+    const nextRaw = displayedImages[nextIndex]?.url
+    if (prevRaw) {
+      urlsToPreload.push(getCloudinaryUrl(prevRaw, {
+        width: 800,
+        height: 1200,
+        quality: 'auto:best',
+        format: 'auto',
+        crop: 'limit'
+      }))
+    }
+    if (nextRaw) {
+      urlsToPreload.push(getCloudinaryUrl(nextRaw, {
+        width: 800,
+        height: 1200,
+        quality: 'auto:best',
+        format: 'auto',
+        crop: 'limit'
+      }))
+    }
+    urlsToPreload.forEach(url => preloadImage(url))
+  }, [activeImageIndex, displayedImages])
 
   // Keyboard navigation for images
   useEffect(() => {
@@ -410,10 +442,10 @@ const ProductDetailClient = ({ productId }: ProductDetailClientProps) => {
               className="mb-6"
             >
               <div className="relative h-[750px] overflow-hidden group">
-                {mainImageReady && preparedMainUrl ? (
+                {displayedMainUrl ? (
                   <Image
-                    key={preparedMainUrl}
-                    src={preparedMainUrl}
+                    key={displayedMainUrl}
+                    src={displayedMainUrl}
                     alt={displayedImages[activeImageIndex]?.alt || primaryImage?.alt || product.name}
                     width={800}
                     height={1200}
