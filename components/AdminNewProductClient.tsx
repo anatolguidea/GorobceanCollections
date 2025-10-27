@@ -460,9 +460,9 @@ const AdminNewProductClient = () => {
       
       console.log(`Total images to upload: ${imageIndex}`)
       console.log('FormData contents:')
-      for (let [key, value] of formDataToSend.entries()) {
+      Array.from(formDataToSend.entries()).forEach(([key, value]) => {
         console.log(`${key}:`, value)
-      }
+      })
       
       if (imageIndex === 0) {
         throw new Error('No images to upload')

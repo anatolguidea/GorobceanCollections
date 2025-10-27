@@ -12,7 +12,7 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react'
-import { api } from '../../utils/api'
+import { api } from '../utils/api'
 
 interface Category {
   _id: string

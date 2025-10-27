@@ -162,7 +162,7 @@ export const api = {
       apiClient.post('/api/auth/login', data),
     logout: () => apiClient.post('/api/auth/logout'),
     getProfile: () => apiClient.get('/api/auth/me'),
-    updateProfile: (data: { firstName?: string; lastName?: string; email?: string }) =>
+    updateProfile: (data: { firstName?: string; lastName?: string; email?: string; addresses?: any }) =>
       apiClient.put('/api/auth/profile', data),
     changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string }) =>
       apiClient.put('/api/auth/change-password', data),

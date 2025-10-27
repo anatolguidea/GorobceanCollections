@@ -97,7 +97,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
 
   // Update inventory when sizes change
   useEffect(() => {
-    const newInventory: Array<{ size: string; quantity: string; reserved: string }> = []
+    const newInventory: Array<{ size: string; color: string; quantity: string; reserved: string }> = []
     
     formData.sizes.forEach(size => {
       const existing = formData.inventory.find(
@@ -105,6 +105,7 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
       )
       newInventory.push({
         size,
+        color: '',
         quantity: existing?.quantity || '',
         reserved: existing?.reserved || ''
       })
@@ -496,9 +497,9 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
         
         console.log(`Total images to upload: ${imageIndex}`)
         console.log('FormData contents:')
-        for (let [key, value] of formDataToSend.entries()) {
+        Array.from(formDataToSend.entries()).forEach(([key, value]) => {
           console.log(`${key}:`, value)
-        }
+        })
 
         // Use the update with images endpoint
         const response = await fetch(`http://localhost:5001/api/products/${productId}/with-images`, {
@@ -996,7 +997,6 @@ const AdminEditProductClient = ({ productId }: AdminEditProductClientProps) => {
                         <div className="flex items-center gap-2">
                           <div 
                             className="w-4 h-4 rounded-full border border-gray-300"
-                            style={{ backgroundColor: formData.colors.find(c => c.name === item.color)?.hex }}
                           />
                           {item.color}
                         </div>

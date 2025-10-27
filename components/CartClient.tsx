@@ -83,7 +83,7 @@ const CartClient = () => {
 
   // Saved addresses support inside cart modal
   const [profileLoading, setProfileLoading] = useState(false)
-  const [savedAddresses, setSavedAddresses] = useState<Array<{ type?: string; address: string; city: string; state: string; zipCode: string; country: string; isDefault?: boolean }>>([])
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ type?: string; phone?: string; address: string; city: string; state: string; zipCode: string; country: string; isDefault?: boolean }>>([])
   const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null)
 
   // Helper function to get the main image for a specific color
