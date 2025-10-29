@@ -28,6 +28,10 @@ A modern, full-stack e-commerce website for a premium clothing brand built with 
 - **Search & Filtering**: Product search and advanced filtering
 - **Responsive Design**: Mobile and desktop optimized
 
+###Galery
+![Uploading Screenshot 2025-10-27 at 14.14.12.png…]()
+
+
 ## 🛠️ Tech Stack
 
 ### Frontend
