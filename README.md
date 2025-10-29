@@ -18,11 +18,12 @@ A modern, full-stack e-commerce website for a premium clothing brand built with 
 - **Validation**: Input validation using express-validator
 - **Security**: Helmet, CORS, rate limiting, and security middleware
 - **Modular Architecture**: Organized routes and middleware
+
 ### Galery
-![ss1](images/ss1.png)
-![ss2](images/ss2.png)
-![ss3](images/ss3.png)
-![ss4](images/ss4.png)
+![ss1](/public/images/ss1.png)
+![ss2](/public/images/ss2.png)
+![ss3](/public/images/ss3.png)
+![ss4](/public/images/ss4.png)
 
 ### E-commerce Features
 - **Product Management**: CRUD operations for products with categories
